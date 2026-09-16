@@ -1037,20 +1037,27 @@
     const compact = $('swatches').classList.toggle('compact');
     $('toggleSizes').textContent = compact ? '크기 조절 펼치기' : '크기 조절 접기';
   });
-  // new positions for the current colors, spread out so points don't clump
+  // new positions for the current colors: light colors sit high, dark colors low,
+  // x is random but spread out so points don't clump
   function relayoutBlobs() {
-    const n = colors.length, pts = [];
-    const minD = Math.max(0.18, 0.9 / Math.sqrt(n));
-    for (let i = 0; i < n; i++) {
+    const n = colors.length, pts = new Array(n);
+    const minD = Math.max(0.16, 0.8 / Math.sqrt(n));
+    const lumOfC = c => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+    const order = colors.map((c, i) => ({ i, l: lumOfC(c) })).sort((a, b) => b.l - a.l); // light first
+    const placed = [];
+    order.forEach((o, rank) => {
+      const t = n === 1 ? 0.5 : rank / (n - 1);
+      const y = Math.min(0.9, Math.max(0.1, 0.14 + t * 0.72 + (Math.random() - 0.5) * 0.1));
       let best = null, bestScore = -1;
       for (let tries = 0; tries < 40; tries++) {
-        const c = { x: 0.1 + Math.random() * 0.8, y: 0.1 + Math.random() * 0.8 };
-        const d = pts.length ? Math.min(...pts.map(q => Math.hypot(q.x - c.x, q.y - c.y))) : 1;
+        const c = { x: 0.1 + Math.random() * 0.8, y };
+        const d = placed.length ? Math.min(...placed.map(q => Math.hypot(q.x - c.x, q.y - c.y))) : 1;
         if (d > bestScore) { bestScore = d; best = c; }
         if (d >= minD) break;
       }
-      pts.push(best);
-    }
+      placed.push(best);
+      pts[o.i] = best;
+    });
     pts.forEach((c, i) => {
       const b = blobs[i];
       // set the base so the point lands here at the current animation time
@@ -1076,7 +1083,7 @@
     setBlur(0);
     renderSwatches();
     startUI();
-    markSourceDirty();
+    relayoutBlobs();
   }
   // hatch / ascii read luminance from the gradient when there is no photo
   function markSourceDirty() { if (!photoLum) { hatchDirty = true; asciiDirty = true; } }
@@ -1232,6 +1239,7 @@
     setBlend(autoBlend(colorCount));
     renderSwatches();
     startUI();
+    relayoutBlobs();
   }
 
   /* ---------- color count (2~5) ---------- */
