@@ -74,7 +74,7 @@
   }
   @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
 
-  aside { background: var(--panel); border-right: 1px solid var(--border); padding: 20px 24px; display: flex; flex-direction: column; gap: 22px; }
+  aside { background: var(--panel); border-right: 1px solid var(--border); padding: 20px 24px 40px; display: flex; flex-direction: column; gap: 22px; }
   .section-title { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
 
   #dropzone {
@@ -140,7 +140,17 @@
   .color-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
   .color-row input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
 
-  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .row:last-child { margin-bottom: 0; }
+  /* rows with a slider share one label column so the sliders line up */
+  .row:has(> input[type="range"]) > label.small { flex: 0 0 64px; white-space: nowrap; }
+  .mode-group { margin-bottom: 14px; }
+  .fx-controls { margin-bottom: 4px; }
+  #streakSection { margin-top: 2px; }
+  #streakSection > select { margin-bottom: 12px; }
+  .fx-body .sub-title { margin-top: 2px; }
+  .layer-list, #addLayer { margin-bottom: 12px; }
+  details.adv .row:last-of-type { margin-bottom: 6px; }
   label.small { font-size: 13px; color: var(--text); }
   input[type="range"] { flex: 1; accent-color: var(--accent); }
 
@@ -301,7 +311,8 @@
   #removePhoto { position: absolute; left: 8px; bottom: 8px; background: rgba(0,0,0,.6); color: #fff; border: none; backdrop-filter: blur(4px); padding: 5px 10px; font-size: 12px; }
   .swatches.compact { flex-direction: row; flex-wrap: wrap; gap: 6px; }
   .swatches.compact .color-row { padding: 4px 8px 4px 4px; gap: 6px; width: calc(50% - 3px); box-sizing: border-box; }
-  .swatches.compact .color-row .hex { width: 100%; min-width: 0; }
+  .swatches.compact .color-row .hex { flex: 1 1 0; width: auto; min-width: 0; }
+  .swatches.compact .color-row { min-width: 0; overflow: hidden; }
   .swatches.compact .color-row input[type="range"], .swatches.compact .color-row .val { display: none; }
   .swatches.compact .color-row input[type="color"] { width: 28px; height: 28px; }
   .link-btn { border: none; background: none; color: var(--muted); font-size: 11px; cursor: pointer; padding: 6px 0 0; text-align: left; }
@@ -416,7 +427,7 @@
         <button class="shuffle-btn" id="shuffleBtn">다시 추출 (랜덤 시드)</button>
       </div>
       <div id="photoPill"><span>사진에서 추출한 색상</span><button id="photoPillRemove" type="button">사진 제거</button></div>
-      <div class="row" style="margin-bottom:12px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">색상 개수</label>
         <div class="count-group" id="countGroup">
           <button data-n="2">2</button>
@@ -439,12 +450,12 @@
         <button data-mode="streak">모션 블러</button>
       </div>
       <div id="controlSection">
-      <div class="row" id="blendRow" style="margin-bottom:14px">
+      <div class="row" id="blendRow">
         <label class="small" style="white-space:nowrap">섞임 정도</label>
         <input type="range" id="blend" min="0" max="100" step="1" value="20">
         <span class="val" id="blendLabel">20</span>
       </div>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">노이즈</label>
         <input type="range" id="noise" min="0" max="100" step="1" value="12">
         <span class="val" id="noiseLabel">12</span>
@@ -455,27 +466,27 @@
         <option value="radial" selected>방사형 (소실점에서 퍼짐)</option>
         <option value="linear">직선 (한 방향)</option>
       </select>
-      <div class="row" id="streakAngleRow" style="margin-bottom:14px">
+      <div class="row" id="streakAngleRow">
         <label class="small" style="white-space:nowrap">각도</label>
         <input type="range" id="streakAngle" min="0" max="180" step="1" value="35">
         <span class="val" id="streakAngleVal">35°</span>
       </div>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">줄기 밀도</label>
         <input type="range" id="streakDensity" min="1" max="20" step="1" value="4">
         <span class="val" id="streakDensityVal">4</span>
       </div>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">부드러움</label>
         <input type="range" id="streakSoft" min="0" max="100" step="1" value="55">
         <span class="val" id="streakSoftVal">55</span>
       </div>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">하이라이트</label>
         <input type="range" id="streakGlow" min="0" max="100" step="1" value="60">
         <span class="val" id="streakGlowVal">60</span>
       </div>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">색 대비</label>
         <input type="range" id="streakContrast" min="0" max="100" step="1" value="50">
         <span class="val" id="streakContrastVal">50</span>
@@ -483,7 +494,7 @@
       <button class="shuffle-btn" id="regenStreak" style="margin-top:0">다시 생성 (랜덤 시드)</button>
       <details class="adv"><summary>소실점 위치</summary>
       <div id="focalBlock">
-        <div class="row" style="margin-bottom:6px">
+        <div class="row">
           <label class="small" style="white-space:nowrap">소실점</label>
           <span class="size-inputs" style="margin:0;white-space:nowrap;gap:5px">
             X <input type="number" id="focalX" min="-100" max="200" step="1" value="-8" style="width:54px;padding:7px 4px">%
@@ -498,16 +509,16 @@
       </div>
       </details>
       <div style="display:none">
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">노이즈</label>
         <input type="range" id="streakNoise" min="0" max="100" step="1" value="12">
         <span class="val" id="streakNoiseVal">12</span>
       </div>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small">애니메이션</label>
         <span class="toggle"><input type="checkbox" id="streakAnim"><span class="track" onclick="document.getElementById('streakAnim').click()"></span></span>
       </div>
-      <div class="row" style="margin-bottom:6px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">속도</label>
         <input type="range" id="streakSpeed" min="0.2" max="3" step="0.1" value="1">
         <span class="val" id="streakSpeedVal">1.0×</span>
@@ -553,12 +564,12 @@
         <option value="custom">커스텀 레이어</option>
       </select>
 
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">선 밀도</label>
         <input type="range" id="hatchDensity" min="1" max="10" step="1" value="4">
         <span class="val" id="hatchDensityVal">4</span>
       </div>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">펜 두께</label>
         <input type="range" id="penThickness" min="0.5" max="4" step="0.1" value="1.2">
         <span class="val" id="penThicknessVal">1.2</span>
@@ -567,11 +578,11 @@
 
 
 
-      <div class="row ink-row" style="margin-bottom:14px">
+      <div class="row ink-row">
         <label class="small">잉크 색</label>
         <input type="color" id="inkColor" value="#000064">
       </div>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">잉크 투명도</label>
         <input type="range" id="inkOpacity" min="5" max="100" step="1" value="80">
         <span class="val" id="inkOpacityVal">80</span>
@@ -583,7 +594,7 @@
       <button class="shuffle-btn" id="regenHatch" style="margin-top:0">다시 생성 (랜덤 시드)</button>
       <details class="adv"><summary>고급 (레이어 · 펜 질감 · 사진 위치)</summary>
       <div id="layerBlock">
-        <div class="row" style="margin-bottom:14px">
+        <div class="row">
           <label class="small" style="white-space:nowrap">기준 각도</label>
           <input type="range" id="hatchAngle" min="0" max="180" step="1" value="0">
           <span class="val" id="hatchAngleVal">0°</span>
@@ -592,32 +603,32 @@
         <div class="layer-list" id="hatchLayers"></div>
         <button class="shuffle-btn" id="addLayer" style="margin:0 0 14px">+ 레이어 추가</button>
       </div>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">펜 흔들림</label>
         <input type="range" id="penWobble" min="0" max="3" step="0.1" value="0.8">
         <span class="val" id="penWobbleVal">0.8</span>
       </div>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">선 거칠기</label>
         <input type="range" id="lineRough" min="0" max="3" step="0.1" value="1">
         <span class="val" id="lineRoughVal">1.0</span>
       </div>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">오버슈트</label>
         <input type="range" id="lineOver" min="0" max="12" step="1" value="4">
         <span class="val" id="lineOverVal">4</span>
       </div>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">잉크 번짐</label>
         <input type="range" id="inkBleed" min="0" max="3" step="0.1" value="1.5">
         <span class="val" id="inkBleedVal">1.5</span>
       </div>
-      <div class="row" style="margin-bottom:6px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">사진 확대</label>
         <input type="range" id="hatchZoom" min="1" max="3" step="0.05" value="1">
         <span class="val" id="hatchZoomVal">1.0×</span>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:14px">캔버스를 드래그하면 사진 위치를 옮길 수 있어요</div>
+      <div style="font-size:11px;color:var(--muted);margin:-6px 0 12px">캔버스를 드래그하면 사진 위치를 옮길 수 있어요</div>
       </details>
     </div>
       </div>
@@ -640,7 +651,7 @@
         <option value="sequence">문자 시퀀스…</option>
       </select>
       <input type="text" id="asciiCustom" placeholder="문자 입력" maxlength="32" style="width:100%; display:none; margin-bottom:8px">
-      <div class="row" style="margin:6px 0 14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">문자 크기</label>
         <input type="range" id="asciiSize" min="6" max="32" step="1" value="12">
         <span class="val" id="asciiSizeVal">12</span>
@@ -649,11 +660,11 @@
 
 
 
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small">반전</label>
         <span class="toggle"><input type="checkbox" id="asciiInvert"><span class="track" onclick="document.getElementById('asciiInvert').click()"></span></span>
       </div>
-      <div class="row ink-row" style="margin-bottom:14px">
+      <div class="row ink-row">
         <label class="small">글자 색</label>
         <input type="color" id="asciiInk" value="#0a0b0d">
       </div>
@@ -662,31 +673,31 @@
         <input type="color" id="asciiBg" value="#ffffff">
       </div>
       <details class="adv"><summary>고급 (간격 · 대비 · 사진 위치)</summary>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">문자 간격</label>
         <input type="range" id="asciiLs" min="0.5" max="2" step="0.05" value="1">
         <span class="val" id="asciiLsVal">1.0</span>
       </div>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">줄 높이</label>
         <input type="range" id="asciiLh" min="0.5" max="2" step="0.05" value="1">
         <span class="val" id="asciiLhVal">1.0</span>
       </div>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">대비</label>
         <input type="range" id="asciiContrast" min="0.5" max="2" step="0.05" value="1">
         <span class="val" id="asciiContrastVal">1.0</span>
       </div>
-      <div class="row" style="margin-bottom:14px">
+      <div class="row">
         <label class="small">원본 색상 사용</label>
         <span class="toggle"><input type="checkbox" id="asciiColorMode"><span class="track" onclick="document.getElementById('asciiColorMode').click()"></span></span>
       </div>
-      <div class="row" style="margin-bottom:6px">
+      <div class="row">
         <label class="small" style="white-space:nowrap">사진 확대</label>
         <input type="range" id="asciiZoom" min="1" max="3" step="0.05" value="1">
         <span class="val" id="asciiZoomVal">1.0×</span>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:14px">캔버스를 드래그하면 사진 위치를 옮길 수 있어요</div>
+      <div style="font-size:11px;color:var(--muted);margin:-6px 0 12px">캔버스를 드래그하면 사진 위치를 옮길 수 있어요</div>
       </details>
     </div>
       </div>
