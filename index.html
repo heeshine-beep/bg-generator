@@ -279,6 +279,37 @@
   .layer-row .rm:hover { color: #e5484d; }
   .sub-title { font-size: 11px; color: var(--muted); margin: 0 0 8px; }
 
+  /* panels, tabs, compact swatches */
+  details.panel > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; }
+  details.panel > summary::-webkit-details-marker { display: none; }
+  details.panel > summary::after { content: ""; width: 7px; height: 7px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(45deg); margin-right: 4px; transition: transform .15s; }
+  details.panel:not([open]) > summary::after { transform: rotate(-45deg); }
+  details.panel:not([open]) > summary.section-title { margin-bottom: 0; }
+  .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 3px; border-radius: 8px; background: var(--surface); margin-bottom: 10px; }
+  .tabs button { height: 28px; border: none; border-radius: 6px; background: transparent; color: var(--body-c); font-size: 12px; font-weight: 600; cursor: pointer; transition: .15s; }
+  .tabs button:hover { color: var(--text); }
+  .tabs button.active { background: var(--bg); color: var(--text); box-shadow: var(--shadow); }
+  .tab-panel { margin-bottom: 10px; }
+  .tab-panel .chips { margin-bottom: 0; }
+  #photoPill { display: none; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--body-c); padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); margin-bottom: 10px; }
+  #photoPill button, #removePhoto { font-size: 11px; padding: 3px 8px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--body-c); }
+  #photoPill button:hover, #removePhoto:hover { color: var(--accent); border-color: var(--accent); }
+  #removePhoto { position: absolute; left: 8px; bottom: 8px; background: rgba(0,0,0,.6); color: #fff; border: none; backdrop-filter: blur(4px); padding: 5px 10px; font-size: 12px; }
+  .swatches.compact { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .swatches.compact .color-row { padding: 4px 8px 4px 4px; gap: 6px; width: calc(50% - 3px); box-sizing: border-box; }
+  .swatches.compact .color-row .hex { width: 100%; min-width: 0; }
+  .swatches.compact .color-row input[type="range"], .swatches.compact .color-row .val { display: none; }
+  .swatches.compact .color-row input[type="color"] { width: 28px; height: 28px; }
+  .link-btn { border: none; background: none; color: var(--muted); font-size: 11px; cursor: pointer; padding: 6px 0 0; text-align: left; }
+  .link-btn:hover { color: var(--accent); }
+  details.adv { margin-top: 4px; }
+  details.adv > summary { list-style: none; cursor: pointer; font-size: 12px; color: var(--muted); padding: 8px 0; border-top: 1px dashed var(--border); user-select: none; }
+  details.adv > summary::-webkit-details-marker { display: none; }
+  details.adv > summary::before { content: "+ "; }
+  details.adv[open] > summary::before { content: "− "; }
+  details.adv > summary:hover { color: var(--accent); }
+  details.adv[open] > summary { margin-bottom: 10px; }
+
   /* effect layers */
   .fx-row {
     display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; margin-bottom: 8px;
@@ -336,12 +367,38 @@
 
 <div class="layout">
   <aside>
-    <div>
-      <div class="section-title">소스</div>
-      <div class="mode-group" id="srcGroup" style="grid-template-columns:1fr 1fr;margin-bottom:10px">
-        <button data-src="photo" class="active">사진</button>
-        <button data-src="color">색상</button>
+    <div id="paletteSection">
+      <div class="section-title">색상</div>
+      <div class="tabs" id="colorTabs">
+        <button data-tab="brand" class="active">브랜드</button>
+        <button data-tab="texture">텍스처</button>
+        <button data-tab="mine">내 프리셋</button>
+        <button data-tab="photo">사진</button>
       </div>
+      <div class="tab-panel" data-panel="brand">
+        <div class="chips" id="brandGrad"></div>
+      </div>
+      <div class="tab-panel" data-panel="texture" hidden>
+        <div class="chips" id="texGrad"></div>
+      </div>
+      <div class="tab-panel" data-panel="mine" hidden>
+        <div class="sub-title">현재 색상·위치·옵션을 저장해요 <span id="gradCount" class="sub-count"></span></div>
+      <div class="preset-row">
+        <select id="gradPreset">
+          <option value="">저장한 프리셋…</option>
+        </select>
+        <button class="shuffle-btn" id="gradSave" title="현재 설정을 프리셋으로 저장">저장</button>
+        <button class="shuffle-btn" id="gradDel" title="선택한 프리셋 삭제">삭제</button>
+      </div>
+      <div id="gradSaveRow" style="display:none; margin-bottom:8px">
+        <input type="text" id="gradName" placeholder="프리셋 이름" maxlength="20" style="width:100%">
+        <div class="grid2" style="margin-top:6px">
+          <button class="shuffle-btn" id="gradConfirm" style="margin-top:0">저장</button>
+          <button class="shuffle-btn" id="gradCancel" style="margin-top:0">취소</button>
+        </div>
+      </div>
+      </div>
+      <div class="tab-panel" data-panel="photo" hidden>
       <div id="dropzone">
         <strong>사진을 드래그하거나 클릭</strong>
         붙여넣기(Ctrl/⌘+V)도 가능해요
@@ -349,24 +406,123 @@
       <div id="thumbWrap">
         <img id="thumb" alt="업로드한 사진">
         <button id="reupload">사진 변경</button>
-      </div>
-      <div id="manualWrap">
-        <span><strong>색상 직접 지정</strong><br>사진 없이 팔레트 색으로 만드는 중이에요. 색은 그라데이션 모드에서 바꿀 수 있어요</span>
+        <button id="removePhoto">사진 제거</button>
       </div>
       <input type="file" id="fileInput" accept="image/*">
+        <button class="shuffle-btn" id="shuffleBtn">다시 추출 (랜덤 시드)</button>
+      </div>
+      <div id="photoPill"><span>사진에서 추출한 색상</span><button id="photoPillRemove" type="button">사진 제거</button></div>
+      <div class="row" style="margin-bottom:12px">
+        <label class="small" style="white-space:nowrap">색상 개수</label>
+        <div class="count-group" id="countGroup">
+          <button data-n="2">2</button>
+          <button data-n="3">3</button>
+          <button data-n="4" class="active">4</button>
+          <button data-n="5">5</button>
+          <button data-n="6">6</button>
+          <button data-n="7">7</button>
+          <button data-n="8">8</button>
+        </div>
+      </div>
+      <div class="swatches compact" id="swatches"></div>
+      <button class="link-btn" id="toggleSizes" type="button">색상별 크기 조절 펼치기</button>
     </div>
 
-
-    <div>
-      <div class="section-title">베이스 (색상)</div>
+    <details class="panel" open>
+      <summary class="section-title">스타일</summary>
       <div class="mode-group" id="modeGroup" style="grid-template-columns:1fr 1fr">
         <button data-mode="gradient" class="active">그라데이션</button>
         <button data-mode="streak">모션 블러</button>
       </div>
+      <div id="controlSection">
+      <div class="row" style="margin-bottom:14px">
+        <label class="small">애니메이션</label>
+        <span class="toggle"><input type="checkbox" id="animToggle"><span class="track" onclick="document.getElementById('animToggle').click()"></span></span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">속도</label>
+        <input type="range" id="speed" min="0.2" max="3" step="0.1" value="1">
+        <span class="val" id="speedVal">1.0×</span>
+      </div>
+      <div class="row" id="blendRow" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">섞임 정도</label>
+        <input type="range" id="blend" min="0" max="100" step="1" value="20">
+        <span class="val" id="blendLabel">20</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">노이즈</label>
+        <input type="range" id="noise" min="0" max="100" step="1" value="12">
+        <span class="val" id="noiseLabel">12</span>
+      </div>
+      </div>
+    <div id="streakSection" style="display:none">
+      <select id="streakType" style="margin-bottom:14px">
+        <option value="radial" selected>방사형 (소실점에서 퍼짐)</option>
+        <option value="linear">직선 (한 방향)</option>
+      </select>
+      <div class="row" id="streakAngleRow" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">각도</label>
+        <input type="range" id="streakAngle" min="0" max="180" step="1" value="35">
+        <span class="val" id="streakAngleVal">35°</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">줄기 밀도</label>
+        <input type="range" id="streakDensity" min="1" max="20" step="1" value="4">
+        <span class="val" id="streakDensityVal">4</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">부드러움</label>
+        <input type="range" id="streakSoft" min="0" max="100" step="1" value="55">
+        <span class="val" id="streakSoftVal">55</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">하이라이트</label>
+        <input type="range" id="streakGlow" min="0" max="100" step="1" value="60">
+        <span class="val" id="streakGlowVal">60</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">색 대비</label>
+        <input type="range" id="streakContrast" min="0" max="100" step="1" value="50">
+        <span class="val" id="streakContrastVal">50</span>
+      </div>
+      <button class="shuffle-btn" id="regenStreak" style="margin-top:0">다시 생성 (랜덤 시드)</button>
+      <details class="adv"><summary>소실점 위치</summary>
+      <div id="focalBlock">
+        <div class="row" style="margin-bottom:6px">
+          <label class="small" style="white-space:nowrap">소실점</label>
+          <span class="size-inputs" style="margin:0;white-space:nowrap;gap:5px">
+            X <input type="number" id="focalX" min="-100" max="200" step="1" value="-8" style="width:54px;padding:7px 4px">%
+            Y <input type="number" id="focalY" min="-100" max="200" step="1" value="112" style="width:54px;padding:7px 4px">%
+          </span>
+        </div>
+        <div class="grid2" style="margin-bottom:6px">
+          <button class="shuffle-btn" id="focalCenter" style="margin-top:0">가운데</button>
+          <button class="shuffle-btn" id="focalCorner" style="margin-top:0">왼쪽 아래</button>
+        </div>
+        <div id="streakHint" style="font-size:11px;color:var(--muted);margin-bottom:14px">캔버스를 드래그해도 소실점을 옮길 수 있어요. 0~100%가 캔버스 안, 그 밖은 캔버스 바깥이에요</div>
+      </div>
+      </details>
+      <div style="display:none">
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">노이즈</label>
+        <input type="range" id="streakNoise" min="0" max="100" step="1" value="12">
+        <span class="val" id="streakNoiseVal">12</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small">애니메이션</label>
+        <span class="toggle"><input type="checkbox" id="streakAnim"><span class="track" onclick="document.getElementById('streakAnim').click()"></span></span>
+      </div>
+      <div class="row" style="margin-bottom:6px">
+        <label class="small" style="white-space:nowrap">속도</label>
+        <input type="range" id="streakSpeed" min="0.2" max="3" step="0.1" value="1">
+        <span class="val" id="streakSpeedVal">1.0×</span>
+      </div>
+      </div>
     </div>
+    </details>
 
-    <div>
-      <div class="section-title">이펙트 레이어</div>
+    <details class="panel" open>
+      <summary class="section-title">이펙트</summary>
       <div class="fx-row off" id="fxHatchRow">
         <div class="fx-head">
           <label class="small">크로스해칭</label>
@@ -401,16 +557,7 @@
         <option value="stipple">점묘 (Stippling)</option>
         <option value="custom">커스텀 레이어</option>
       </select>
-      <div id="layerBlock">
-        <div class="row" style="margin-bottom:14px">
-          <label class="small" style="white-space:nowrap">기준 각도</label>
-          <input type="range" id="hatchAngle" min="0" max="180" step="1" value="0">
-          <span class="val" id="hatchAngleVal">0°</span>
-        </div>
-        <div class="sub-title">레이어 (각도 · 명암 임계값 · 잉크)</div>
-        <div class="layer-list" id="hatchLayers"></div>
-        <button class="shuffle-btn" id="addLayer" style="margin:0 0 14px">+ 레이어 추가</button>
-      </div>
+
       <div class="row" style="margin-bottom:14px">
         <label class="small" style="white-space:nowrap">선 밀도</label>
         <input type="range" id="hatchDensity" min="1" max="10" step="1" value="4">
@@ -420,6 +567,35 @@
         <label class="small" style="white-space:nowrap">펜 두께</label>
         <input type="range" id="penThickness" min="0.5" max="4" step="0.1" value="1.2">
         <span class="val" id="penThicknessVal">1.2</span>
+      </div>
+
+
+
+
+      <div class="row ink-row" style="margin-bottom:14px">
+        <label class="small">잉크 색</label>
+        <input type="color" id="inkColor" value="#000064">
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">잉크 투명도</label>
+        <input type="range" id="inkOpacity" min="5" max="100" step="1" value="80">
+        <span class="val" id="inkOpacityVal">80</span>
+      </div>
+      <div class="row ink-row" style="display:none">
+        <label class="small">배경 색</label>
+        <input type="color" id="hatchBg" value="#faf6ee">
+      </div>
+      <button class="shuffle-btn" id="regenHatch" style="margin-top:0">다시 생성 (랜덤 시드)</button>
+      <details class="adv"><summary>고급 (레이어 · 펜 질감 · 사진 위치)</summary>
+      <div id="layerBlock">
+        <div class="row" style="margin-bottom:14px">
+          <label class="small" style="white-space:nowrap">기준 각도</label>
+          <input type="range" id="hatchAngle" min="0" max="180" step="1" value="0">
+          <span class="val" id="hatchAngleVal">0°</span>
+        </div>
+        <div class="sub-title">레이어 (각도 · 명암 임계값 · 잉크)</div>
+        <div class="layer-list" id="hatchLayers"></div>
+        <button class="shuffle-btn" id="addLayer" style="margin:0 0 14px">+ 레이어 추가</button>
       </div>
       <div class="row" style="margin-bottom:14px">
         <label class="small" style="white-space:nowrap">펜 흔들림</label>
@@ -441,28 +617,14 @@
         <input type="range" id="inkBleed" min="0" max="3" step="0.1" value="1.5">
         <span class="val" id="inkBleedVal">1.5</span>
       </div>
-      <div class="row ink-row" style="margin-bottom:14px">
-        <label class="small">잉크 색</label>
-        <input type="color" id="inkColor" value="#000064">
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">잉크 투명도</label>
-        <input type="range" id="inkOpacity" min="5" max="100" step="1" value="80">
-        <span class="val" id="inkOpacityVal">80</span>
-      </div>
-      <div class="row ink-row" style="display:none">
-        <label class="small">배경 색</label>
-        <input type="color" id="hatchBg" value="#faf6ee">
-      </div>
       <div class="row" style="margin-bottom:6px">
         <label class="small" style="white-space:nowrap">사진 확대</label>
         <input type="range" id="hatchZoom" min="1" max="3" step="0.05" value="1">
         <span class="val" id="hatchZoomVal">1.0×</span>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:14px">캔버스를 드래그하면 사진 위치를 옮길 수 있어요</div>
-      <button class="shuffle-btn" id="regenHatch" style="margin-top:0">다시 생성 (랜덤 시드)</button>
+      </details>
     </div>
-
       </div>
       <div class="fx-row off" id="fxAsciiRow">
         <div class="fx-head">
@@ -488,6 +650,23 @@
         <input type="range" id="asciiSize" min="6" max="32" step="1" value="12">
         <span class="val" id="asciiSizeVal">12</span>
       </div>
+
+
+
+
+      <div class="row" style="margin-bottom:14px">
+        <label class="small">반전</label>
+        <span class="toggle"><input type="checkbox" id="asciiInvert"><span class="track" onclick="document.getElementById('asciiInvert').click()"></span></span>
+      </div>
+      <div class="row ink-row" style="margin-bottom:14px">
+        <label class="small">글자 색</label>
+        <input type="color" id="asciiInk" value="#0a0b0d">
+      </div>
+      <div class="row ink-row" style="display:none">
+        <label class="small">배경 색</label>
+        <input type="color" id="asciiBg" value="#ffffff">
+      </div>
+      <details class="adv"><summary>고급 (간격 · 대비 · 사진 위치)</summary>
       <div class="row" style="margin-bottom:14px">
         <label class="small" style="white-space:nowrap">문자 간격</label>
         <input type="range" id="asciiLs" min="0.5" max="2" step="0.05" value="1">
@@ -507,154 +686,16 @@
         <label class="small">원본 색상 사용</label>
         <span class="toggle"><input type="checkbox" id="asciiColorMode"><span class="track" onclick="document.getElementById('asciiColorMode').click()"></span></span>
       </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small">반전</label>
-        <span class="toggle"><input type="checkbox" id="asciiInvert"><span class="track" onclick="document.getElementById('asciiInvert').click()"></span></span>
-      </div>
-      <div class="row ink-row" style="margin-bottom:14px">
-        <label class="small">글자 색</label>
-        <input type="color" id="asciiInk" value="#0a0b0d">
-      </div>
-      <div class="row ink-row" style="display:none">
-        <label class="small">배경 색</label>
-        <input type="color" id="asciiBg" value="#ffffff">
-      </div>
       <div class="row" style="margin-bottom:6px">
         <label class="small" style="white-space:nowrap">사진 확대</label>
         <input type="range" id="asciiZoom" min="1" max="3" step="0.05" value="1">
         <span class="val" id="asciiZoomVal">1.0×</span>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:14px">캔버스를 드래그하면 사진 위치를 옮길 수 있어요</div>
+      </details>
     </div>
-
       </div>
-      <div class="sub-title" style="margin:0">레이어를 켜면 블렌드 모드·불투명도와 상세 설정이 카드 안에 함께 열려요. 사진이 있으면 사진의 명암을, 없으면 베이스 색의 명암을 따라 그려져요</div>
-    </div>
-
-    <div id="paletteSection" style="display:none">
-      <div class="section-title">색상</div>
-      <div class="sub-title">그리팅 브랜드 프리셋</div>
-      <div class="chips" id="brandGrad"></div>
-      <div class="sub-title">텍스처 프리셋 (블러 풍경)</div>
-      <div class="chips" id="texGrad"></div>
-      <div class="sub-title">내 프리셋 <span id="gradCount" class="sub-count"></span></div>
-      <div class="preset-row">
-        <select id="gradPreset">
-          <option value="">저장한 프리셋…</option>
-        </select>
-        <button class="shuffle-btn" id="gradSave" title="현재 설정을 프리셋으로 저장">저장</button>
-        <button class="shuffle-btn" id="gradDel" title="선택한 프리셋 삭제">삭제</button>
-      </div>
-      <div id="gradSaveRow" style="display:none; margin-bottom:8px">
-        <input type="text" id="gradName" placeholder="프리셋 이름" maxlength="20" style="width:100%">
-        <div class="grid2" style="margin-top:6px">
-          <button class="shuffle-btn" id="gradConfirm" style="margin-top:0">저장</button>
-          <button class="shuffle-btn" id="gradCancel" style="margin-top:0">취소</button>
-        </div>
-      </div>
-      <div class="row" style="margin-bottom:12px">
-        <label class="small" style="white-space:nowrap">색상 개수</label>
-        <div class="count-group" id="countGroup">
-          <button data-n="2">2</button>
-          <button data-n="3">3</button>
-          <button data-n="4" class="active">4</button>
-          <button data-n="5">5</button>
-          <button data-n="6">6</button>
-          <button data-n="7">7</button>
-          <button data-n="8">8</button>
-        </div>
-      </div>
-      <div class="swatches" id="swatches"></div>
-      <button class="shuffle-btn" id="shuffleBtn">다시 추출 (랜덤 시드)</button>
-    </div>
-
-    <div id="controlSection" style="display:none">
-      <div class="section-title">옵션</div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small">애니메이션</label>
-        <span class="toggle"><input type="checkbox" id="animToggle"><span class="track" onclick="document.getElementById('animToggle').click()"></span></span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">속도</label>
-        <input type="range" id="speed" min="0.2" max="3" step="0.1" value="1">
-        <span class="val" id="speedVal">1.0×</span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">섞임 정도</label>
-        <input type="range" id="blend" min="0" max="100" step="1" value="20">
-        <span class="val" id="blendLabel">20</span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">노이즈</label>
-        <input type="range" id="noise" min="0" max="100" step="1" value="12">
-        <span class="val" id="noiseLabel">12</span>
-      </div>
-    </div>
-
-
-    <div id="streakSection" style="display:none">
-      <div class="section-title">모션 블러</div>
-      <select id="streakType" style="margin-bottom:14px">
-        <option value="radial" selected>방사형 (소실점에서 퍼짐)</option>
-        <option value="linear">직선 (한 방향)</option>
-      </select>
-      <div class="row" id="streakAngleRow" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">각도</label>
-        <input type="range" id="streakAngle" min="0" max="180" step="1" value="35">
-        <span class="val" id="streakAngleVal">35°</span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">줄기 밀도</label>
-        <input type="range" id="streakDensity" min="1" max="20" step="1" value="4">
-        <span class="val" id="streakDensityVal">4</span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">부드러움</label>
-        <input type="range" id="streakSoft" min="0" max="100" step="1" value="55">
-        <span class="val" id="streakSoftVal">55</span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">하이라이트</label>
-        <input type="range" id="streakGlow" min="0" max="100" step="1" value="60">
-        <span class="val" id="streakGlowVal">60</span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">색 대비</label>
-        <input type="range" id="streakContrast" min="0" max="100" step="1" value="50">
-        <span class="val" id="streakContrastVal">50</span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">노이즈</label>
-        <input type="range" id="streakNoise" min="0" max="100" step="1" value="12">
-        <span class="val" id="streakNoiseVal">12</span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small">애니메이션</label>
-        <span class="toggle"><input type="checkbox" id="streakAnim"><span class="track" onclick="document.getElementById('streakAnim').click()"></span></span>
-      </div>
-      <div class="row" style="margin-bottom:6px">
-        <label class="small" style="white-space:nowrap">속도</label>
-        <input type="range" id="streakSpeed" min="0.2" max="3" step="0.1" value="1">
-        <span class="val" id="streakSpeedVal">1.0×</span>
-      </div>
-      <div id="focalBlock">
-        <div class="row" style="margin-bottom:6px">
-          <label class="small" style="white-space:nowrap">소실점</label>
-          <span class="size-inputs" style="margin:0;white-space:nowrap;gap:5px">
-            X <input type="number" id="focalX" min="-100" max="200" step="1" value="-8" style="width:54px;padding:7px 4px">%
-            Y <input type="number" id="focalY" min="-100" max="200" step="1" value="112" style="width:54px;padding:7px 4px">%
-          </span>
-        </div>
-        <div class="grid2" style="margin-bottom:6px">
-          <button class="shuffle-btn" id="focalCenter" style="margin-top:0">가운데</button>
-          <button class="shuffle-btn" id="focalCorner" style="margin-top:0">왼쪽 아래</button>
-        </div>
-        <div id="streakHint" style="font-size:11px;color:var(--muted);margin-bottom:14px">캔버스를 드래그해도 소실점을 옮길 수 있어요. 0~100%가 캔버스 안, 그 밖은 캔버스 바깥이에요</div>
-      </div>
-      <button class="shuffle-btn" id="regenStreak" style="margin-top:0">다시 생성 (랜덤 시드)</button>
-    </div>
-
-
+    </details>
   </aside>
 
   <main>
@@ -888,8 +929,10 @@
     const grad = mode === 'gradient';
     $('shuffleBtn').style.display = pixels ? '' : 'none';
     $('paletteSection').style.display = up ? 'block' : 'none';
-    $('controlSection').style.display = (up && grad) ? 'block' : 'none';
+    $('controlSection').style.display = up ? 'block' : 'none';
+    $('blendRow').style.display = grad ? 'flex' : 'none';
     $('streakSection').style.display = (up && !grad) ? 'block' : 'none';
+    $('photoPill').style.display = pixels ? 'flex' : 'none';
     $('hatchSection').style.display = (up && fx.hatch.on) ? 'block' : 'none';
     $('asciiSection').style.display = (up && fx.ascii.on) ? 'block' : 'none';
     if (!grad) applyStreakUI();
@@ -930,16 +973,14 @@
       if (pixels) photoStash = { pixels, photoLum, thumb: $('thumb').src };
       manualMode = true;
       pixels = null; photoLum = null; lum = null;
-      dropzone.style.display = 'none';
+      dropzone.style.display = '';
       $('thumbWrap').style.display = 'none';
-      $('manualWrap').style.display = 'flex';
       if (hexes) setColors(hexes);
       else if (!colors) setColors(BRAND_GRADS[0].colors);
       else { hatchDirty = true; asciiDirty = true; syncPanels(); draw(); }
       return;
     }
     manualMode = false;
-    $('manualWrap').style.display = 'none';
     if (photoStash) {
       pixels = photoStash.pixels; photoLum = photoStash.photoLum; lum = photoLum;
       $('thumb').src = photoStash.thumb;
@@ -957,6 +998,25 @@
     btn.addEventListener('click', () => setSource(btn.dataset.src));
   });
   function enterManual(hexes) { setSource('color', hexes); }
+
+  /* ---------- color tabs (brand / texture / mine / photo) ---------- */
+  function showColorTab(name) {
+    document.querySelectorAll('#colorTabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    document.querySelectorAll('.tab-panel').forEach(pn => { pn.hidden = pn.dataset.panel !== name; });
+  }
+  document.querySelectorAll('#colorTabs button').forEach(b => b.addEventListener('click', () => showColorTab(b.dataset.tab)));
+  function removePhoto() {
+    photoStash = null;
+    setSource('color'); // keeps the current palette, drops the photo
+    showColorTab('brand');
+    toast('사진을 제거했어요. 색상은 그대로 남아 있어요');
+  }
+  $('removePhoto').addEventListener('click', removePhoto);
+  $('photoPillRemove').addEventListener('click', removePhoto);
+  $('toggleSizes').addEventListener('click', () => {
+    const compact = $('swatches').classList.toggle('compact');
+    $('toggleSizes').textContent = compact ? '색상별 크기 조절 펼치기' : '색상별 크기 조절 접기';
+  });
   function applyTexturePreset(p) {
     if (!colors) setSource('color', p.colors);
     applyGradState({ colors: p.colors, pos: p.pos, sizes: p.sizes, count: p.colors.length, blend: p.blend ?? 40, noise: noiseAmount, speed });
@@ -1044,8 +1104,8 @@
     setSourceButtons('photo');
     $('thumb').src = url;
     dropzone.style.display = 'none';
-    $('manualWrap').style.display = 'none';
     $('thumbWrap').style.display = 'block';
+    showColorTab('photo');
     samplePixels(img);
     buildLum(img);
     const c = document.createElement('canvas');
