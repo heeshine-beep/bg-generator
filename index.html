@@ -440,7 +440,10 @@
         </div>
       </div>
       <div class="swatches compact" id="swatches"></div>
-      <button class="link-btn" id="toggleSizes" type="button">색상별 크기 조절 펼치기</button>
+      <div class="row" style="margin-top:8px">
+        <button class="shuffle-btn" id="relayout" type="button" style="margin:0;flex:1" title="색은 그대로 두고 포인트 위치만 새로 뽑아요">배치 재생성</button>
+        <button class="link-btn" id="toggleSizes" type="button" style="padding:0 4px;white-space:nowrap">크기 조절 펼치기</button>
+      </div>
     </div>
 
     <details class="panel" open>
@@ -1030,8 +1033,32 @@
   $('photoPillRemove').addEventListener('click', removePhoto);
   $('toggleSizes').addEventListener('click', () => {
     const compact = $('swatches').classList.toggle('compact');
-    $('toggleSizes').textContent = compact ? '색상별 크기 조절 펼치기' : '색상별 크기 조절 접기';
+    $('toggleSizes').textContent = compact ? '크기 조절 펼치기' : '크기 조절 접기';
   });
+  // new positions for the current colors, spread out so points don't clump
+  function relayoutBlobs() {
+    const n = colors.length, pts = [];
+    const minD = Math.max(0.18, 0.9 / Math.sqrt(n));
+    for (let i = 0; i < n; i++) {
+      let best = null, bestScore = -1;
+      for (let tries = 0; tries < 40; tries++) {
+        const c = { x: 0.1 + Math.random() * 0.8, y: 0.1 + Math.random() * 0.8 };
+        const d = pts.length ? Math.min(...pts.map(q => Math.hypot(q.x - c.x, q.y - c.y))) : 1;
+        if (d > bestScore) { bestScore = d; best = c; }
+        if (d >= minD) break;
+      }
+      pts.push(best);
+    }
+    pts.forEach((c, i) => {
+      const b = blobs[i];
+      // set the base so the point lands here at the current animation time
+      b.bx = c.x - b.ax * Math.sin(time * b.fx * 2 * Math.PI + b.px);
+      b.by = c.y - b.ay * Math.cos(time * b.fy * 2 * Math.PI + b.py);
+    });
+    markSourceDirty();
+    draw(); updateHandles();
+  }
+  $('relayout').addEventListener('click', () => { if (colors) relayoutBlobs(); });
   function applyTexturePreset(p) {
     if (!colors) setSource('color', p.colors);
     applyGradState({ colors: p.colors, pos: p.pos, sizes: p.sizes, count: p.colors.length, blend: p.blend ?? 40, noise: noiseAmount, speed });
