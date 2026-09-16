@@ -384,17 +384,13 @@
   <aside>
     <div id="paletteSection">
       <div class="section-title">색상</div>
-      <div class="tabs" id="colorTabs">
-        <button data-tab="brand" class="active">브랜드</button>
-        <button data-tab="texture">텍스처</button>
+      <div class="tabs" id="colorTabs" style="grid-template-columns:repeat(3,1fr)">
+        <button data-tab="brand" class="active">기본</button>
         <button data-tab="mine">내 프리셋</button>
         <button data-tab="photo">사진</button>
       </div>
       <div class="tab-panel" data-panel="brand">
         <div class="chips" id="brandGrad"></div>
-      </div>
-      <div class="tab-panel" data-panel="texture" hidden>
-        <div class="chips" id="texGrad"></div>
       </div>
       <div class="tab-panel" data-panel="mine" hidden>
         <div class="sub-title">현재 색상·위치·옵션을 저장해요 <span id="gradCount" class="sub-count"></span></div>
@@ -453,6 +449,11 @@
         <button data-mode="streak">모션 블러</button>
       </div>
       <div id="controlSection">
+      <div class="row" id="blurRow">
+        <label class="small" style="white-space:nowrap">블러</label>
+        <input type="range" id="gradBlur" min="0" max="100" step="1" value="0">
+        <span class="val" id="gradBlurVal">0</span>
+      </div>
       <div class="row" id="blendRow">
         <label class="small" style="white-space:nowrap">섞임 정도</label>
         <input type="range" id="blend" min="0" max="100" step="1" value="40">
@@ -887,13 +888,13 @@
   ];
   // blurred-landscape textures, 5 colors with their positions on the artboard
   const TEXTURE_GRADS = [
-    {"name": "골든 필드", "blend": 20, "colors": ["#e9e0b9", "#c3ab40", "#ebe2be", "#394725", "#adae75", "#e2d28c", "#878132", "#6f6a1e"], "pos": [{"bx": 0.34, "by": 0.17}, {"bx": 0.65, "by": 0.76}, {"bx": 0.78, "by": 0.19}, {"bx": 0.17, "by": 0.87}, {"bx": 0.16, "by": 0.36}, {"bx": 0.69, "by": 0.52}, {"bx": 0.24, "by": 0.69}, {"bx": 0.84, "by": 0.89}], "sizes": [55, 50, 55, 47, 49, 54, 47, 43]},
-    {"name": "선셋 헤이즈", "blend": 20, "colors": ["#f5cfb1", "#996c2c", "#f2d1ae", "#876135", "#e4c1a5", "#b1957e", "#b79878", "#956c3b"], "pos": [{"bx": 0.21, "by": 0.17}, {"bx": 0.16, "by": 0.8}, {"bx": 0.8, "by": 0.16}, {"bx": 0.82, "by": 0.82}, {"bx": 0.52, "by": 0.29}, {"bx": 0.79, "by": 0.51}, {"bx": 0.22, "by": 0.5}, {"bx": 0.49, "by": 0.77}], "sizes": [54, 50, 52, 50, 49, 47, 47, 51]},
-    {"name": "메도우", "blend": 20, "colors": ["#bbc1aa", "#828868", "#adc9cc", "#aca03e", "#cfc37b", "#88834d", "#c5c7b8", "#a09843"], "pos": [{"bx": 0.15, "by": 0.18}, {"bx": 0.91, "by": 0.49}, {"bx": 0.41, "by": 0.14}, {"bx": 0.25, "by": 0.81}, {"bx": 0.54, "by": 0.53}, {"bx": 0.12, "by": 0.48}, {"bx": 0.76, "by": 0.19}, {"bx": 0.75, "by": 0.83}], "sizes": [45, 44, 48, 56, 52, 47, 54, 54]},
-    {"name": "레드 록", "blend": 20, "colors": ["#aec7da", "#be7d80", "#b2ccdd", "#ed846c", "#ec9e89", "#dec9c3", "#d9afa9", "#e48a7d"], "pos": [{"bx": 0.24, "by": 0.14}, {"bx": 0.82, "by": 0.81}, {"bx": 0.76, "by": 0.15}, {"bx": 0.16, "by": 0.81}, {"bx": 0.13, "by": 0.48}, {"bx": 0.45, "by": 0.43}, {"bx": 0.82, "by": 0.49}, {"bx": 0.49, "by": 0.79}], "sizes": [53, 50, 54, 50, 45, 51, 47, 50]},
-    {"name": "클라우드", "blend": 20, "colors": ["#dbdfe3", "#dfdfe0", "#bcd4e4", "#c9cfd4", "#a8c8df", "#d1dce2", "#c2c6cc", "#b0bbc5"], "pos": [{"bx": 0.19, "by": 0.43}, {"bx": 0.43, "by": 0.71}, {"bx": 0.27, "by": 0.13}, {"bx": 0.86, "by": 0.76}, {"bx": 0.77, "by": 0.12}, {"bx": 0.71, "by": 0.41}, {"bx": 0.16, "by": 0.8}, {"bx": 0.6, "by": 0.87}], "sizes": [52, 48, 52, 50, 50, 54, 49, 44]},
-    {"name": "캐니언 선셋", "blend": 20, "colors": ["#a3c3cf", "#e38566", "#abb3b7", "#a85757", "#ad9395", "#dc8161", "#ba7476", "#7c515c"], "pos": [{"bx": 0.29, "by": 0.15}, {"bx": 0.78, "by": 0.79}, {"bx": 0.75, "by": 0.11}, {"bx": 0.39, "by": 0.83}, {"bx": 0.11, "by": 0.3}, {"bx": 0.81, "by": 0.41}, {"bx": 0.46, "by": 0.45}, {"bx": 0.12, "by": 0.73}], "sizes": [50, 56, 48, 49, 46, 53, 49, 50]},
-    {"name": "오션", "blend": 20, "colors": ["#a8d2ee", "#6aaabc", "#b7d8ef", "#5a685b", "#a4d0e8", "#9ac9e0", "#8fb0bc", "#68a7b5"], "pos": [{"bx": 0.2, "by": 0.18}, {"bx": 0.81, "by": 0.82}, {"bx": 0.76, "by": 0.16}, {"bx": 0.12, "by": 0.83}, {"bx": 0.47, "by": 0.39}, {"bx": 0.81, "by": 0.51}, {"bx": 0.19, "by": 0.56}, {"bx": 0.45, "by": 0.81}], "sizes": [55, 50, 54, 46, 51, 49, 45, 50]},
+    {"name": "골든 필드", "blend": 40, "blur": 60, "colors": ["#e9e0b9", "#c3ab40", "#ebe2be", "#394725", "#adae75", "#e2d28c", "#878132", "#6f6a1e"], "pos": [{"bx": 0.34, "by": 0.17}, {"bx": 0.65, "by": 0.76}, {"bx": 0.78, "by": 0.19}, {"bx": 0.17, "by": 0.87}, {"bx": 0.16, "by": 0.36}, {"bx": 0.69, "by": 0.52}, {"bx": 0.24, "by": 0.69}, {"bx": 0.84, "by": 0.89}], "sizes": [55, 50, 55, 47, 49, 54, 47, 43]},
+    {"name": "선셋 헤이즈", "blend": 40, "blur": 60, "colors": ["#f5cfb1", "#996c2c", "#f2d1ae", "#876135", "#e4c1a5", "#b1957e", "#b79878", "#956c3b"], "pos": [{"bx": 0.21, "by": 0.17}, {"bx": 0.16, "by": 0.8}, {"bx": 0.8, "by": 0.16}, {"bx": 0.82, "by": 0.82}, {"bx": 0.52, "by": 0.29}, {"bx": 0.79, "by": 0.51}, {"bx": 0.22, "by": 0.5}, {"bx": 0.49, "by": 0.77}], "sizes": [54, 50, 52, 50, 49, 47, 47, 51]},
+    {"name": "메도우", "blend": 40, "blur": 60, "colors": ["#bbc1aa", "#828868", "#adc9cc", "#aca03e", "#cfc37b", "#88834d", "#c5c7b8", "#a09843"], "pos": [{"bx": 0.15, "by": 0.18}, {"bx": 0.91, "by": 0.49}, {"bx": 0.41, "by": 0.14}, {"bx": 0.25, "by": 0.81}, {"bx": 0.54, "by": 0.53}, {"bx": 0.12, "by": 0.48}, {"bx": 0.76, "by": 0.19}, {"bx": 0.75, "by": 0.83}], "sizes": [45, 44, 48, 56, 52, 47, 54, 54]},
+    {"name": "레드 록", "blend": 40, "blur": 60, "colors": ["#aec7da", "#be7d80", "#b2ccdd", "#ed846c", "#ec9e89", "#dec9c3", "#d9afa9", "#e48a7d"], "pos": [{"bx": 0.24, "by": 0.14}, {"bx": 0.82, "by": 0.81}, {"bx": 0.76, "by": 0.15}, {"bx": 0.16, "by": 0.81}, {"bx": 0.13, "by": 0.48}, {"bx": 0.45, "by": 0.43}, {"bx": 0.82, "by": 0.49}, {"bx": 0.49, "by": 0.79}], "sizes": [53, 50, 54, 50, 45, 51, 47, 50]},
+    {"name": "클라우드", "blend": 40, "blur": 60, "colors": ["#dbdfe3", "#dfdfe0", "#bcd4e4", "#c9cfd4", "#a8c8df", "#d1dce2", "#c2c6cc", "#b0bbc5"], "pos": [{"bx": 0.19, "by": 0.43}, {"bx": 0.43, "by": 0.71}, {"bx": 0.27, "by": 0.13}, {"bx": 0.86, "by": 0.76}, {"bx": 0.77, "by": 0.12}, {"bx": 0.71, "by": 0.41}, {"bx": 0.16, "by": 0.8}, {"bx": 0.6, "by": 0.87}], "sizes": [52, 48, 52, 50, 50, 54, 49, 44]},
+    {"name": "캐니언 선셋", "blend": 40, "blur": 60, "colors": ["#a3c3cf", "#e38566", "#abb3b7", "#a85757", "#ad9395", "#dc8161", "#ba7476", "#7c515c"], "pos": [{"bx": 0.29, "by": 0.15}, {"bx": 0.78, "by": 0.79}, {"bx": 0.75, "by": 0.11}, {"bx": 0.39, "by": 0.83}, {"bx": 0.11, "by": 0.3}, {"bx": 0.81, "by": 0.41}, {"bx": 0.46, "by": 0.45}, {"bx": 0.12, "by": 0.73}], "sizes": [50, 56, 48, 49, 46, 53, 49, 50]},
+    {"name": "오션", "blend": 40, "blur": 60, "colors": ["#a8d2ee", "#6aaabc", "#b7d8ef", "#5a685b", "#a4d0e8", "#9ac9e0", "#8fb0bc", "#68a7b5"], "pos": [{"bx": 0.2, "by": 0.18}, {"bx": 0.81, "by": 0.82}, {"bx": 0.76, "by": 0.16}, {"bx": 0.12, "by": 0.83}, {"bx": 0.47, "by": 0.39}, {"bx": 0.81, "by": 0.51}, {"bx": 0.19, "by": 0.56}, {"bx": 0.45, "by": 0.81}], "sizes": [55, 50, 54, 46, 51, 49, 45, 50]},
   ];
   const BRAND_INKS = [
     { name: '네이비 × 크림', ink: '#001946', bg: '#f2f2e8' },
@@ -949,6 +950,7 @@
     $('paletteSection').style.display = up ? 'block' : 'none';
     $('controlSection').style.display = up ? 'block' : 'none';
     $('blendRow').style.display = grad ? 'flex' : 'none';
+    $('blurRow').style.display = grad ? 'flex' : 'none';
     $('streakSection').style.display = (up && !grad) ? 'block' : 'none';
     $('photoPill').style.display = pixels ? 'flex' : 'none';
     $('hatchSection').style.display = (up && fx.hatch.on) ? 'block' : 'none';
@@ -1061,7 +1063,7 @@
   $('relayout').addEventListener('click', () => { if (colors) relayoutBlobs(); });
   function applyTexturePreset(p) {
     if (!colors) setSource('color', p.colors);
-    applyGradState({ colors: p.colors, pos: p.pos, sizes: p.sizes, count: p.colors.length, blend: p.blend ?? 40, noise: noiseAmount, speed });
+    applyGradState({ colors: p.colors, pos: p.pos, sizes: p.sizes, count: p.colors.length, blend: p.blend ?? 40, blur: p.blur ?? 0, noise: noiseAmount, speed });
     if (!$('animToggle').checked) time = 0; // land exactly on the preset composition
     draw(); updateHandles();
   }
@@ -1071,6 +1073,7 @@
     colorCount = colors.length;
     document.querySelectorAll('#countGroup button').forEach(b => b.classList.toggle('active', parseInt(b.dataset.n, 10) === colorCount));
     setBlend(autoBlend(colorCount));
+    setBlur(0);
     renderSwatches();
     startUI();
     markSourceDirty();
@@ -1081,31 +1084,23 @@
   function renderBrandChips() {
     const g = $('brandGrad');
     g.innerHTML = '';
-    BRAND_GRADS.forEach(p => {
+    [...BRAND_GRADS, ...TEXTURE_GRADS].forEach(p => {
       const b = document.createElement('button');
       b.className = 'chip'; b.type = 'button'; b.title = p.colors.join(' · ');
-      b.innerHTML = `<span class="stripes">${p.colors.map(c => `<span style="background:${c}"></span>`).join('')}</span><span class="name">${p.name}</span>`;
+      if (p.pos) { // composition preset: preview the layout
+        const bg = p.colors.map((c, i) => `radial-gradient(at ${Math.round(p.pos[i].bx * 100)}% ${Math.round(p.pos[i].by * 100)}%, ${c} 0, transparent 60%)`).join(',');
+        b.innerHTML = `<span class="stripes" style="background:${p.colors[0]};background-image:${bg}"></span><span class="name">${p.name}</span>`;
+      } else {
+        b.innerHTML = `<span class="stripes">${p.colors.map(c => `<span style="background:${c}"></span>`).join('')}</span><span class="name">${p.name}</span>`;
+      }
       b.addEventListener('click', () => {
-        if (!colors) enterManual(p.colors); else setColors(p.colors);
+        if (p.pos) applyTexturePreset(p);
+        else if (!colors) enterManual(p.colors);
+        else setColors(p.colors);
         g.querySelectorAll('.chip').forEach(x => x.classList.toggle('active', x === b));
-        toast(`브랜드 프리셋 "${p.name}" 적용됨`);
+        toast(`"${p.name}" 적용됨`);
       });
       g.append(b);
-    });
-    const tg = $('texGrad');
-    tg.innerHTML = '';
-    TEXTURE_GRADS.forEach(p => {
-      const b = document.createElement('button');
-      b.className = 'chip'; b.type = 'button'; b.title = p.colors.join(' · ');
-      const bg = p.colors.map((c, i) => `radial-gradient(at ${Math.round(p.pos[i].bx * 100)}% ${Math.round(p.pos[i].by * 100)}%, ${c} 0, transparent 60%)`).join(',');
-      b.innerHTML = `<span class="stripes" style="background:${p.colors[0]};background-image:${bg}"></span><span class="name">${p.name}</span>`;
-      b.addEventListener('click', () => {
-        applyTexturePreset(p);
-        tg.querySelectorAll('.chip').forEach(x => x.classList.toggle('active', x === b));
-        $('brandGrad').querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
-        toast(`텍스처 프리셋 "${p.name}" 적용됨`);
-      });
-      tg.append(b);
     });
     const h = $('brandHatch');
     h.innerHTML = '';
@@ -1416,6 +1411,13 @@
   // blend control: slider 0(뚜렷) ~ 100(부드럽게) → IDW falloff power 3.2 ~ 0.8
   let blendVal = 40;
   const autoBlend = n => Math.min(80, Math.max(20, 40 + (n - 4) * 8));
+  // base blur (0..100) for the gradient, in px relative to the output width
+  let gradBlur = 0;
+  const gradBlurPx = W => (gradBlur / 100) * W * 0.05;
+  function setBlur(v) {
+    gradBlur = v;
+    $('gradBlur').value = v; $('gradBlurVal').textContent = v;
+  }
   function setBlend(v) {
     blendVal = v;
     $('blend').value = v; $('blendLabel').textContent = v;
@@ -2201,6 +2203,7 @@
       sizes: sizes.slice(0, colors.length),
       count: colorCount,
       blend: blendVal,
+      blur: gradBlur,
       noise: noiseAmount,
       speed,
       pos: blobs.slice(0, colors.length).map(b => ({ bx: b.bx, by: b.by })),
@@ -2213,6 +2216,7 @@
     colors = st.colors.map(fromHex);
     (st.sizes || []).forEach((v, i) => { sizes[i] = v; });
     blendVal = st.blend ?? 40;
+    setBlur(st.blur ?? 0);
     noiseAmount = st.noise ?? 0;
     speed = st.speed ?? 1;
     (st.pos || []).forEach((p, i) => { if (blobs[i]) { blobs[i].bx = p.bx; blobs[i].by = p.by; } });
@@ -2307,7 +2311,16 @@
       tctx.filter = 'none';
     } else {
       renderMesh(sctx, sw, sh, t);
-      tctx.drawImage(scratch, 0, 0, W, H);
+      const px = gradBlurPx(W);
+      if (px > 0.2) {
+        // overscan by the blur radius so edges don't fade to transparent
+        const o = Math.ceil(px * 2);
+        tctx.filter = `blur(${px.toFixed(1)}px)`;
+        tctx.drawImage(scratch, -o, -o, W + o * 2, H + o * 2);
+        tctx.filter = 'none';
+      } else {
+        tctx.drawImage(scratch, 0, 0, W, H);
+      }
     }
   }
   // effect layers composited with their blend mode / opacity (hatch below ascii)
@@ -2366,6 +2379,11 @@
     $('noiseLabel').textContent = e.target.value;
     if (!animating) draw();
   });
+  $('gradBlur').addEventListener('input', e => {
+    gradBlur = parseInt(e.target.value, 10);
+    $('gradBlurVal').textContent = e.target.value;
+    if (!animating) draw();
+  });
   $('blend').addEventListener('input', e => {
     blendVal = parseInt(e.target.value, 10);
     $('blendLabel').textContent = e.target.value;
@@ -2385,7 +2403,8 @@
       layers.unshift(`url('${GRAIN_SRC}')`);
       blend = `\n/* 그레인 타일은 검정 + 알파 노이즈입니다. 강도 ${Math.round(noiseAmount * 100)}%로 쓰려면 ::after 레이어에 opacity를 주세요 */`;
     }
-    return `background-color: ${toHex(colors[0])};\nbackground-image:\n  ${layers.join(',\n  ')};${blend}`;
+    const blurNote = gradBlur > 0 ? `\n/* 블러 ${gradBlur}: 실제 배경에는 filter: blur(${gradBlurPx(artW).toFixed(0)}px) 를 별도 레이어에 적용하세요 */` : '';
+    return `background-color: ${toHex(colors[0])};\nbackground-image:\n  ${layers.join(',\n  ')};${blend}${blurNote}`;
   }
 
   $('copyCss').addEventListener('click', async () => {
