@@ -455,8 +455,8 @@
       <div id="controlSection">
       <div class="row" id="blendRow">
         <label class="small" style="white-space:nowrap">섞임 정도</label>
-        <input type="range" id="blend" min="0" max="100" step="1" value="20">
-        <span class="val" id="blendLabel">20</span>
+        <input type="range" id="blend" min="0" max="100" step="1" value="40">
+        <span class="val" id="blendLabel">40</span>
       </div>
       <div class="row">
         <label class="small" style="white-space:nowrap">노이즈</label>
@@ -1412,7 +1412,7 @@
   }
 
   // blend control: slider 0(뚜렷) ~ 100(부드럽게) → IDW falloff power 3.2 ~ 0.8
-  let blendVal = 20;
+  let blendVal = 40;
   const blendPower = () => 3.2 - (blendVal / 100) * 2.4;
 
   function renderMesh(targetCtx, w, h, t) {
@@ -2205,7 +2205,7 @@
     document.querySelectorAll('#countGroup button').forEach(b => b.classList.toggle('active', parseInt(b.dataset.n, 10) === colorCount));
     colors = st.colors.map(fromHex);
     (st.sizes || []).forEach((v, i) => { sizes[i] = v; });
-    blendVal = st.blend ?? 20;
+    blendVal = st.blend ?? 40;
     noiseAmount = st.noise ?? 0;
     speed = st.speed ?? 1;
     (st.pos || []).forEach((p, i) => { if (blobs[i]) { blobs[i].bx = p.bx; blobs[i].by = p.by; } });
