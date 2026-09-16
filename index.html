@@ -185,6 +185,10 @@
   .tb-dur { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
   .tb-dur input[type="number"] { width: 56px; padding: 7px 6px; }
   #sizeBadge { font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 4px; }
+  .tb-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: default; }
+  .tb-toggle .toggle { width: 34px; height: 20px; }
+  .tb-toggle .toggle .track::after { width: 14px; height: 14px; }
+  .tb-toggle .toggle input:checked + .track::after { transform: translateX(14px); }
   #stage { flex: none; }
   #stage {
     border-radius: 12px; overflow: hidden;
@@ -585,10 +589,6 @@
         <input type="range" id="noise" min="0" max="100" step="1" value="12">
         <span class="val" id="noiseLabel">12</span>
       </div>
-      <div class="row">
-        <label class="small">색상 포인트 표시</label>
-        <span class="toggle"><input type="checkbox" id="handleToggle" checked><span class="track" onclick="document.getElementById('handleToggle').click()"></span></span>
-      </div>
     </div>
 
 
@@ -682,6 +682,10 @@
     </div>
     <div class="toolbar export-bar">
       <span id="sizeBadge">720 × 320</span>
+      <label class="tb-toggle" id="handleToggleWrap" title="캔버스 위 색상 포인트(1, 2, 3…) 표시">
+        <span class="toggle"><input type="checkbox" id="handleToggle" checked><span class="track" onclick="document.getElementById('handleToggle').click()"></span></span>
+        <span>포인트</span>
+      </label>
       <span class="tb-sep"></span>
       <button class="action primary" id="downloadPng" disabled>PNG</button>
       <button class="action primary" id="downloadWebp" disabled>WebP</button>
@@ -896,6 +900,7 @@
     $('copyCss').disabled = !up || !grad;
     $('downloadSvg').disabled = !up || !fx.hatch.on;
     $('downloadTxt').disabled = !up || !fx.ascii.on;
+    $('handleToggleWrap').style.display = grad ? 'inline-flex' : 'none';
     // grab cursor when the canvas can be dragged: streak focal point, or photo pan under effects
     $('stage').classList.toggle('hatch-mode', (!grad && streak.type === 'radial') || (anyFx() && !!pixels));
     syncHandleVis();
