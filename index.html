@@ -433,8 +433,8 @@
       </div>
       <div class="row" style="margin-bottom:14px">
         <label class="small" style="white-space:nowrap">섞임 정도</label>
-        <input type="range" id="blend" min="0" max="100" step="1" value="50">
-        <span class="val" id="blendLabel">50</span>
+        <input type="range" id="blend" min="0" max="100" step="1" value="20">
+        <span class="val" id="blendLabel">20</span>
       </div>
       <div class="row" style="margin-bottom:14px">
         <label class="small" style="white-space:nowrap">노이즈</label>
@@ -1302,7 +1302,7 @@
   }
 
   // blend control: slider 0(뚜렷) ~ 100(부드럽게) → IDW falloff power 3.2 ~ 0.8
-  let blendVal = 50;
+  let blendVal = 20;
   const blendPower = () => 3.2 - (blendVal / 100) * 2.4;
 
   function renderMesh(targetCtx, w, h, t) {
@@ -1387,12 +1387,12 @@
     lum = photoLum;
   }
   // render the current gradient at low res and stretch its luminance to full range
-  function buildMeshLum() {
+  function buildMeshLum(t = time) {
     const w = 256, h = Math.max(2, Math.round(artH / artW * w));
     const c = document.createElement('canvas');
     c.width = w; c.height = h;
     const cc = c.getContext('2d');
-    if (mode === 'streak') renderStreak(cc, w, h, time); else renderMesh(cc, w, h, time);
+    if (mode === 'streak') renderStreak(cc, w, h, t); else renderMesh(cc, w, h, t);
     const data = cc.getImageData(0, 0, w, h).data;
     let lo = 1, hi = 0;
     for (let i = 0; i < data.length; i += 4) {
@@ -1403,10 +1403,10 @@
     meshLum = { data, w, h, lo, hi };
   }
   // pick the luminance source for hatch / ascii; returns false when nothing to draw from
-  function ensureLum() {
+  function ensureLum(t = time) {
     if (photoLum) { lum = photoLum; return true; }
     if (!colors) { lum = null; return false; }
-    buildMeshLum();
+    buildMeshLum(t);
     lum = meshLum;
     return true;
   }
@@ -1430,11 +1430,12 @@
     return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
   }
 
-  function generateHatch(W, H) {
+  function generateHatch(W, H, scale = 1) {
     const rnd = seededRand(hatch.seed);
     const strokes = [], dotsArr = [];
-    const sp = Math.max(3, 18 - hatch.density * 1.5); // line spacing (px)
-    const th = hatch.thickness;
+    const sp = Math.max(3, 18 - hatch.density * 1.5) * scale; // line spacing (px at this scale)
+    const th = hatch.thickness * scale;
+    const over = hatch.over * scale, wobble = hatch.wobble * scale, rough = hatch.rough * scale;
 
     if (hatch.style === 'stipple') {
       for (let y = sp / 2; y < H; y += sp) {
@@ -1453,7 +1454,7 @@
     } else {
       // each layer: its own angle (plus the base angle), darkness threshold and optional ink
       const layers = hatch.layers.filter(l => l.on);
-      const diag = Math.hypot(W, H), cx = W / 2, cy = H / 2, step = 3;
+      const diag = Math.hypot(W, H), cx = W / 2, cy = H / 2, step = 3 * scale, ptStep = 4 * scale;
 
       for (const { deg, thr, frac, ink } of layers) {
         const a = (deg + hatch.angle) * Math.PI / 180;
@@ -1475,11 +1476,11 @@
 
           for (const r of runs) {
             if (r.s1 - r.s0 < step) continue;
-            const s0 = r.s0 - hatch.over * rnd(); // overshoot both ends
-            const s1 = r.s1 + hatch.over * rnd();
+            const s0 = r.s0 - over * rnd(); // overshoot both ends
+            const s1 = r.s1 + over * rnd();
             const pts = [];
-            for (let s = s0; s <= s1; s += 4) {
-              const wob = Math.sin(s * 0.12 + phase + o * 0.05) * hatch.wobble + (rnd() - 0.5) * 2 * hatch.rough;
+            for (let s = s0; s <= s1; s += ptStep) {
+              const wob = Math.sin((s * 0.12 + o * 0.05) / scale + phase) * wobble + (rnd() - 0.5) * 2 * rough;
               pts.push([cx + nX * (o + wob) + ux * s, cy + nY * (o + wob) + uy * s]);
             }
             if (pts.length < 2) continue;
@@ -1523,12 +1524,15 @@
     tctx.globalAlpha = 1;
   }
 
-  function ensureHatch() {
-    if (!hatchDirty && hatchCanvas && hatchCanvas.width === artW && hatchCanvas.height === artH) return;
-    if (!ensureLum()) return;
-    hatchGeom = generateHatch(artW, artH);
+  let hatchScale = 1;
+  function ensureHatch(t = time, scale = 1) {
+    const W = Math.max(2, Math.round(artW * scale)), H = Math.max(2, Math.round(artH * scale));
+    if (!hatchDirty && hatchCanvas && hatchCanvas.width === W && hatchCanvas.height === H && hatchScale === scale) return;
+    if (!ensureLum(t)) return;
+    hatchGeom = generateHatch(W, H, scale);
+    hatchScale = scale;
     hatchCanvas = hatchCanvas || document.createElement('canvas');
-    hatchCanvas.width = artW; hatchCanvas.height = artH;
+    hatchCanvas.width = W; hatchCanvas.height = H;
     renderHatchGeom(hatchCanvas.getContext('2d'), hatchGeom);
     hatchDirty = false;
   }
@@ -1719,7 +1723,7 @@
     $('noise').value = e.target.value; $('noiseLabel').textContent = e.target.value;
     if (!animating) draw();
   });
-  $('streakAnim').addEventListener('change', e => { animating = e.target.checked; $('animToggle').checked = animating; });
+  $('streakAnim').addEventListener('change', e => { animating = e.target.checked; $('animToggle').checked = animating; if (!animating) draw(); });
   $('streakSpeed').addEventListener('input', e => {
     speed = parseFloat(e.target.value);
     $('streakSpeedVal').textContent = speed.toFixed(1) + '×';
@@ -1824,9 +1828,9 @@
     tctx.globalAlpha = 1;
   }
 
-  function ensureAscii() {
+  function ensureAscii(t = time) {
     if (!asciiDirty && asciiCanvas && asciiCanvas.width === artW && asciiCanvas.height === artH) return;
-    if (!ensureLum()) return;
+    if (!ensureLum(t)) return;
     asciiCanvas = asciiCanvas || document.createElement('canvas');
     asciiCanvas.width = artW; asciiCanvas.height = artH;
     renderAscii(asciiCanvas.getContext('2d'), artW, artH);
@@ -2091,7 +2095,7 @@
     document.querySelectorAll('#countGroup button').forEach(b => b.classList.toggle('active', parseInt(b.dataset.n, 10) === colorCount));
     colors = st.colors.map(fromHex);
     (st.sizes || []).forEach((v, i) => { sizes[i] = v; });
-    blendVal = st.blend ?? 50;
+    blendVal = st.blend ?? 20;
     noiseAmount = st.noise ?? 0;
     speed = st.speed ?? 1;
     (st.pos || []).forEach((p, i) => { if (blobs[i]) { blobs[i].bx = p.bx; blobs[i].by = p.by; } });
@@ -2190,10 +2194,15 @@
     }
   }
   // effect layers composited with their blend mode / opacity (hatch below ascii)
-  function compositeFx(tctx, W, H) {
+  let fxTime = null;
+  function compositeFx(tctx, W, H, t = time, live = false) {
+    // no photo: the effects read the base, so re-generate them whenever the base moved
+    if (!photoLum && anyFx() && fxTime !== t) { hatchDirty = true; asciiDirty = true; fxTime = t; }
+    // live animation preview keeps the hatch cheap by generating at a reduced resolution
+    const hatchPreview = (live && animating && !photoLum) ? Math.min(1, 480 / artW) : 1;
     for (const key of ['hatch', 'ascii']) {
       if (!fx[key].on) continue;
-      const src = key === 'hatch' ? (ensureHatch(), hatchCanvas) : (ensureAscii(), asciiCanvas);
+      const src = key === 'hatch' ? (ensureHatch(t, hatchPreview), hatchCanvas) : (ensureAscii(t), asciiCanvas);
       if (!src) continue;
       tctx.save();
       tctx.globalCompositeOperation = fx[key].blend;
@@ -2211,7 +2220,7 @@
     const dw = stage.clientWidth, dh = stage.clientHeight;
     if (canvas.width !== dw || canvas.height !== dh) { canvas.width = dw; canvas.height = dh; }
     renderBase(ctx, dw, dh, time, off, mode === 'streak' ? 360 : 240);
-    compositeFx(ctx, dw, dh);
+    compositeFx(ctx, dw, dh, time, true);
     applyNoise(ctx, dw, dh);
   }
 
@@ -2229,7 +2238,7 @@
   setSource('color', BRAND_GRADS[0].colors);
   $('brandGrad').querySelector('.chip')?.classList.add('active');
 
-  $('animToggle').addEventListener('change', e => { animating = e.target.checked; $('streakAnim').checked = animating; });
+  $('animToggle').addEventListener('change', e => { animating = e.target.checked; $('streakAnim').checked = animating; if (!animating) draw(); });
   $('handleToggle').addEventListener('change', syncHandleVis);
   $('speed').addEventListener('input', e => {
     speed = parseFloat(e.target.value);
@@ -2285,7 +2294,7 @@
     if (target.width !== W || target.height !== H) { target.width = W; target.height = H; }
     const tctx = target.getContext('2d');
     renderBase(tctx, W, H, t, document.createElement('canvas'), mode === 'streak' ? 1280 : 320);
-    compositeFx(tctx, W, H);
+    compositeFx(tctx, W, H, t, false);
     applyNoise(tctx, W, H);
     return target;
   }
@@ -2324,7 +2333,8 @@
 
   /* ---------- SVG export (hatch mode) ---------- */
   $('downloadSvg').addEventListener('click', () => {
-    ensureHatch();
+    if (!fx.hatch.on) { toast('크로스해칭 레이어를 먼저 켜주세요'); return; }
+    hatchDirty = true; ensureHatch(time, 1);
     if (!hatchGeom) { toast('크로스해칭 레이어를 먼저 켜주세요'); return; }
     const blob = new Blob([buildSvg(hatchGeom)], { type: 'image/svg+xml' });
     downloadBlob(blob, `hatching-${artW}x${artH}.svg`);
