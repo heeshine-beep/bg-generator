@@ -275,6 +275,27 @@
   .layer-row .rm:hover { color: #e5484d; }
   .sub-title { font-size: 11px; color: var(--muted); margin: 0 0 8px; }
 
+  /* history strip */
+  .history { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 1100px; justify-content: center; min-height: 52px; }
+  .history .hint { font-size: 12px; color: var(--muted); }
+  .hist-item {
+    position: relative; width: 84px; height: 46px; border-radius: 6px; overflow: hidden; flex: none;
+    border: 1px solid var(--border); background: var(--surface); cursor: pointer; padding: 0; transition: .15s;
+  }
+  .hist-item:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .hist-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .hist-item .tag {
+    position: absolute; left: 4px; bottom: 3px; font-size: 9px; font-weight: 600; color: #fff;
+    background: rgba(0,0,0,.55); padding: 1px 5px; border-radius: 4px; pointer-events: none;
+  }
+  .hist-item .rm {
+    position: absolute; right: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; border: none;
+    background: rgba(0,0,0,.6); color: #fff; font-size: 11px; line-height: 16px; cursor: pointer; display: none; padding: 0;
+  }
+  .hist-item:hover .rm { display: block; }
+  .history .clear { font-size: 11px; color: var(--muted); background: none; border: none; cursor: pointer; padding: 4px 6px; }
+  .history .clear:hover { color: var(--accent); }
+
   #toast {
     position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
     background: var(--text); color: var(--bg);
@@ -634,6 +655,7 @@
       <button class="action" id="downloadTxt" disabled>TXT</button>
       <button class="action" id="copyCss" disabled>CSS</button>
     </div>
+    <div class="history" id="history"></div>
   </main>
 </div>
 
@@ -680,7 +702,7 @@
   function updateStageSize() {
     const mainEl = document.querySelector('main');
     const availW = Math.max(120, mainEl.clientWidth - 56);
-    const availH = Math.max(120, mainEl.clientHeight - 150);
+    const availH = Math.max(120, mainEl.clientHeight - 215);
     const s = Math.min(availW / artW, availH / artH, 1.2);
     const stage = $('stage');
     stage.style.width = Math.round(artW * s) + 'px';
@@ -804,13 +826,14 @@
   function syncHandleVis() {
     $('stage').classList.toggle('hide-handles', mode !== 'gradient' || !$('handleToggle').checked);
   }
+  function setMode(m) {
+    mode = m;
+    document.querySelectorAll('#modeGroup button').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+    syncPanels();
+    if (colors) { draw(); updateHandles(); }
+  }
   document.querySelectorAll('#modeGroup button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      mode = btn.dataset.mode;
-      document.querySelectorAll('#modeGroup button').forEach(b => b.classList.toggle('active', b === btn));
-      syncPanels();
-      if (colors) { draw(); updateHandles(); }
-    });
+    btn.addEventListener('click', () => setMode(btn.dataset.mode));
   });
 
   /* ---------- manual color mode (no photo) ---------- */
@@ -931,23 +954,29 @@
     if (item) loadFile(item.getAsFile());
   });
 
+  let photoData = null; // 320px JPEG data URL of the current photo (for history)
+  function applyImage(img, url) {
+    manualMode = false;
+    photoStash = null;
+    setSourceButtons('photo');
+    $('thumb').src = url;
+    dropzone.style.display = 'none';
+    $('manualWrap').style.display = 'none';
+    $('thumbWrap').style.display = 'block';
+    samplePixels(img);
+    buildLum(img);
+    const c = document.createElement('canvas');
+    const k = Math.min(1, 320 / img.width);
+    c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    photoData = c.toDataURL('image/jpeg', 0.8);
+    hatchDirty = true;
+    asciiDirty = true;
+  }
   function loadFile(file) {
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => {
-      manualMode = false;
-      photoStash = null;
-      setSourceButtons('photo');
-      $('thumb').src = url;
-      dropzone.style.display = 'none';
-      $('manualWrap').style.display = 'none';
-      $('thumbWrap').style.display = 'block';
-      samplePixels(img);
-      buildLum(img);
-      hatchDirty = true;
-      asciiDirty = true;
-      extractAndApply();
-    };
+    img.onload = () => { applyImage(img, url); extractAndApply(); };
     img.src = url;
   }
 
@@ -2164,6 +2193,7 @@
   $('copyCss').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(buildCss());
+      recordHistory('css');
       toast('CSS가 클립보드에 복사됐어요');
     } catch {
       // fallback
@@ -2173,6 +2203,7 @@
       ta.select();
       document.execCommand('copy');
       ta.remove();
+      recordHistory('css');
       toast('CSS가 클립보드에 복사됐어요');
     }
   });
@@ -2216,6 +2247,7 @@
   }
 
   function downloadBlob(blob, name) {
+    recordHistory(name.replace(/-.*$/, ''));
     const a = document.createElement('a');
     a.download = name;
     a.href = URL.createObjectURL(blob);
@@ -2315,6 +2347,104 @@
       else rec.stop();
     })();
   });
+
+  /* ---------- history: last 5 exported results ---------- */
+  const HISTORY_MAX = 5;
+  const MODE_LABEL = { gradient: '그라데이션', hatch: '해칭', ascii: '아스키', streak: '모션 블러' };
+  function setArtboard(w, h) {
+    artW = w; artH = h;
+    $('artWInput').value = w; $('artHInput').value = h;
+    const opt = [...$('sizePreset').options].find(o => o.value === `${w}x${h}`);
+    $('sizePreset').value = opt ? opt.value : 'custom';
+    updateStageSize();
+  }
+  function snapshotState() {
+    return {
+      mode, artW, artH, time,
+      photo: pixels ? photoData : null,
+      grad: getGradState(),
+      hatch: { ...hatch }, ascii: { ...ascii }, streak: { ...streak },
+    };
+  }
+  function makeThumb() {
+    const tw = 168, th = Math.max(2, Math.round(tw * artH / artW));
+    const c = renderFrame(document.createElement('canvas'), tw, th, time);
+    return c.toDataURL('image/jpeg', 0.7);
+  }
+  function recordHistory(kind) {
+    if (!colors) return;
+    const state = snapshotState();
+    const sig = JSON.stringify({ ...state, time: 0 });
+    let list = lsGet('pg-history', []);
+    const same = list.findIndex(h => h.sig === sig);
+    if (same >= 0) list.splice(same, 1); // move an identical result to the front
+    list.unshift({ id: Date.now(), ts: Date.now(), kind, sig, state, thumb: makeThumb() });
+    list = list.slice(0, HISTORY_MAX);
+    // if storage is full, drop the photo copies first, then older entries
+    for (let tries = 0; tries < HISTORY_MAX + 1; tries++) {
+      try { localStorage.setItem('pg-history', JSON.stringify(list)); break; }
+      catch (e) {
+        const withPhoto = list.findLast ? list.findLast(h => h.state.photo) : [...list].reverse().find(h => h.state.photo);
+        if (withPhoto) withPhoto.state.photo = null; else list.pop();
+        if (!list.length) break;
+      }
+    }
+    renderHistory();
+  }
+  function applySnapshot(st) {
+    const finish = () => {
+      setArtboard(st.artW, st.artH);
+      applyGradState(st.grad);
+      Object.assign(hatch, st.hatch); normalizeHatch(); clampPan(); applyHatchUI(); persistLastHatch();
+      Object.assign(ascii, st.ascii); applyAsciiUI(); persistLastAscii();
+      Object.assign(streak, st.streak); buildStreakPhases(); persistStreak();
+      time = st.time || 0;
+      hatchDirty = true; asciiDirty = true;
+      setMode(st.mode);
+      toast('히스토리에서 복원했어요');
+    };
+    if (st.photo) {
+      const img = new Image();
+      img.onload = () => { applyImage(img, st.photo); finish(); };
+      img.onerror = () => { setSource('color', st.grad.colors); finish(); };
+      img.src = st.photo;
+    } else {
+      setSource('color', st.grad.colors);
+      finish();
+    }
+  }
+  function renderHistory() {
+    const wrap = $('history');
+    const list = lsGet('pg-history', []);
+    wrap.innerHTML = '';
+    if (!list.length) {
+      wrap.innerHTML = '<span class="hint">내보내기나 CSS 복사를 하면 최근 결과 5개가 여기에 보관돼요</span>';
+      return;
+    }
+    list.forEach(h => {
+      const b = document.createElement('button');
+      b.className = 'hist-item'; b.type = 'button';
+      const d = new Date(h.ts);
+      const when = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      b.title = `${MODE_LABEL[h.state.mode] || h.state.mode} · ${h.state.artW}×${h.state.artH} · ${h.kind.toUpperCase()} · ${when}\n클릭하면 이 설정으로 되돌아가요`;
+      b.innerHTML = `<img src="${h.thumb}" alt=""><span class="tag">${MODE_LABEL[h.state.mode] || ''}</span><button class="rm" type="button" title="삭제">×</button>`;
+      b.addEventListener('click', e => {
+        if (e.target.classList.contains('rm')) {
+          e.stopPropagation();
+          lsSet('pg-history', lsGet('pg-history', []).filter(x => x.id !== h.id));
+          renderHistory();
+          return;
+        }
+        applySnapshot(h.state);
+      });
+      wrap.append(b);
+    });
+    const clear = document.createElement('button');
+    clear.className = 'clear'; clear.type = 'button'; clear.textContent = '모두 지우기';
+    clear.addEventListener('click', () => { lsSet('pg-history', []); renderHistory(); toast('히스토리를 지웠어요'); });
+    wrap.append(clear);
+  }
+  renderHistory();
 
   /* ---------- toast ---------- */
   let toastTimer;
