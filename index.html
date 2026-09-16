@@ -1070,6 +1070,7 @@
     colors = hexes.map(fromHex);
     colorCount = colors.length;
     document.querySelectorAll('#countGroup button').forEach(b => b.classList.toggle('active', parseInt(b.dataset.n, 10) === colorCount));
+    setBlend(autoBlend(colorCount));
     renderSwatches();
     startUI();
     markSourceDirty();
@@ -1233,6 +1234,7 @@
       rand = () => (s = (s * 9301 + 49297) % 233280) / 233280;
     }
     colors = kmeans(pixels, colorCount, rand);
+    setBlend(autoBlend(colorCount));
     renderSwatches();
     startUI();
   }
@@ -1413,6 +1415,11 @@
 
   // blend control: slider 0(뚜렷) ~ 100(부드럽게) → IDW falloff power 3.2 ~ 0.8
   let blendVal = 40;
+  const autoBlend = n => Math.min(80, Math.max(20, 40 + (n - 4) * 8));
+  function setBlend(v) {
+    blendVal = v;
+    $('blend').value = v; $('blendLabel').textContent = v;
+  }
   const blendPower = () => 3.2 - (blendVal / 100) * 2.4;
 
   function renderMesh(targetCtx, w, h, t) {
