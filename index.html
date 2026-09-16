@@ -186,6 +186,10 @@
   .tb-dur input[type="number"] { width: 56px; padding: 7px 6px; }
   #sizeBadge { font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 4px; }
   .tb-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: default; }
+  .tb-speed { display: none; align-items: center; gap: 4px; }
+  .tb-speed input[type="range"] { width: 90px; }
+  .tb-speed .val { width: 34px; font-size: 12px; }
+  .tb-speed.on { display: inline-flex; }
   .tb-toggle .toggle { width: 34px; height: 20px; }
   .tb-toggle .toggle .track::after { width: 14px; height: 14px; }
   .tb-toggle .toggle input:checked + .track::after { transform: translateX(14px); }
@@ -435,15 +439,6 @@
         <button data-mode="streak">모션 블러</button>
       </div>
       <div id="controlSection">
-      <div class="row" style="margin-bottom:14px">
-        <label class="small">애니메이션</label>
-        <span class="toggle"><input type="checkbox" id="animToggle"><span class="track" onclick="document.getElementById('animToggle').click()"></span></span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">속도</label>
-        <input type="range" id="speed" min="0.2" max="3" step="0.1" value="1">
-        <span class="val" id="speedVal">1.0×</span>
-      </div>
       <div class="row" id="blendRow" style="margin-bottom:14px">
         <label class="small" style="white-space:nowrap">섞임 정도</label>
         <input type="range" id="blend" min="0" max="100" step="1" value="20">
@@ -713,6 +708,15 @@
       <span class="size-inputs" style="margin:0">
         <input type="number" id="artWInput" value="720" min="16" max="4096"> ×
         <input type="number" id="artHInput" value="320" min="16" max="4096"> px
+      </span>
+      <span class="tb-sep"></span>
+      <span class="tb-toggle" title="베이스와 이펙트가 천천히 움직여요. GIF·MP4로 내보낼 수 있어요">
+        <span class="toggle"><input type="checkbox" id="animToggle"><span class="track" onclick="document.getElementById('animToggle').click()"></span></span>
+        <span style="cursor:pointer" onclick="document.getElementById('animToggle').click()">애니메이션</span>
+      </span>
+      <span class="tb-speed" id="speedWrap" title="재생 속도">
+        <input type="range" id="speed" min="0.2" max="3" step="0.1" value="1">
+        <span class="val" id="speedVal">1.0×</span>
       </span>
     </div>
     <div id="stage">
@@ -1791,7 +1795,7 @@
     $('noise').value = e.target.value; $('noiseLabel').textContent = e.target.value;
     if (!animating) draw();
   });
-  $('streakAnim').addEventListener('change', e => { animating = e.target.checked; $('animToggle').checked = animating; if (!animating) draw(); });
+  $('streakAnim').addEventListener('change', e => { animating = e.target.checked; $('animToggle').checked = animating; $('speedWrap').classList.toggle('on', animating); if (!animating) draw(); });
   $('streakSpeed').addEventListener('input', e => {
     speed = parseFloat(e.target.value);
     $('streakSpeedVal').textContent = speed.toFixed(1) + '×';
@@ -2306,7 +2310,7 @@
   setSource('color', BRAND_GRADS[0].colors);
   $('brandGrad').querySelector('.chip')?.classList.add('active');
 
-  $('animToggle').addEventListener('change', e => { animating = e.target.checked; $('streakAnim').checked = animating; if (!animating) draw(); });
+  $('animToggle').addEventListener('change', e => { animating = e.target.checked; $('streakAnim').checked = animating; $('speedWrap').classList.toggle('on', animating); if (!animating) draw(); });
   $('handleToggle').addEventListener('change', syncHandleVis);
   $('speed').addEventListener('input', e => {
     speed = parseFloat(e.target.value);
