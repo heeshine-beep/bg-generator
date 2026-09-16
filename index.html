@@ -62,10 +62,19 @@
   }
   #themeToggle:hover { background: var(--border); }
 
-  .layout { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 65px); }
+  .layout { display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - 65px); }
+  @media (max-width: 860px) {
+    .layout { display: flex; flex-direction: column; height: auto; }
+    main { order: -1; padding: 16px; border-bottom: 1px solid var(--border); }
+    aside { max-height: none; border-right: none; }
+    header { height: auto; min-height: 56px; padding: 10px 16px; }
+    header h1 { font-size: 15px; }
+    header .tagline { display: none; }
+    .toolbar select { min-width: 0; flex: 1; }
+  }
   @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
 
-  aside { background: var(--panel); border-right: 1px solid var(--border); padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+  aside { background: var(--panel); border-right: 1px solid var(--border); padding: 20px 24px; display: flex; flex-direction: column; gap: 22px; }
   .section-title { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
 
   #dropzone {
@@ -116,9 +125,9 @@
     width: 34px; height: 28px; flex: none; border: 1px solid var(--border); border-radius: 6px;
     cursor: pointer; background: none; padding: 2px;
   }
-  .count-group { display: flex; gap: 4px; }
+  .count-group { display: flex; gap: 3px; }
   .count-group button {
-    width: 30px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    width: 26px; height: 26px; padding: 0; border-radius: 6px; border: 1px solid var(--border);
     background: transparent; color: var(--body-c); font-size: 13px; font-weight: 600;
     cursor: pointer; transition: .15s;
   }
@@ -163,12 +172,24 @@
     border: 1px solid var(--border); background: transparent; color: var(--body-c); cursor: pointer; transition: .15s; }
   .shuffle-btn:hover { color: var(--accent); border-color: var(--accent); }
 
-  main { position: relative; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; padding: 32px; overflow: hidden; }
+  main { position: relative; display: flex; flex-direction: column; gap: 14px; align-items: center; justify-content: center; padding: 20px 28px; overflow: hidden; min-height: 0; }
+  .toolbar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
+    width: 100%; max-width: 1100px;
+  }
+  .toolbar select { width: auto; min-width: 240px; }
+  .tb-label { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-right: 4px; }
+  .tb-sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+  .export-bar { padding-top: 4px; }
+  .export-bar .action { height: 36px; padding: 0 16px; font-size: 13px; }
+  .tb-dur { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+  .tb-dur input[type="number"] { width: 56px; padding: 7px 6px; }
+  #sizeBadge { font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 4px; }
+  #stage { flex: none; }
   #stage {
     border-radius: 12px; overflow: hidden;
     position: relative; box-shadow: var(--shadow); border: 1px solid var(--border); background: var(--surface);
   }
-  #sizeBadge { color: var(--muted); font-size: 12px; font-weight: 600; }
 
   aside { overflow-y: auto; max-height: calc(100vh - 65px); }
   select, input[type="number"], input[type="text"] {
@@ -206,16 +227,21 @@
   #stage.hatch-mode #meshCanvas:active { cursor: grabbing; }
 
   /* brand preset chips */
-  .chips { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+  .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
   .chip {
-    display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 8px;
+    display: flex; flex-direction: column; gap: 4px; padding: 5px; border-radius: 8px; min-width: 0;
     border: 1px solid var(--border); background: var(--bg); cursor: pointer; text-align: left; transition: .15s;
   }
+  .chip .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sub-count { font-weight: 400; margin-left: 2px; }
+  .preset-row { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; margin-bottom: 8px; }
+  .preset-row select { min-width: 0; }
+  .preset-row .shuffle-btn { width: auto; margin: 0; padding: 0 10px; }
   .chip:hover { border-color: var(--accent); }
   .chip.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-  .chip .stripes { display: flex; height: 22px; border-radius: 5px; overflow: hidden; }
+  .chip .stripes { display: flex; height: 18px; border-radius: 5px; overflow: hidden; }
   .chip .stripes span { flex: 1; }
-  .chip .name { font-size: 11px; font-weight: 600; color: var(--body-c); }
+  .chip .name { font-size: 10px; font-weight: 600; color: var(--body-c); }
   .chip.ink .stripes { position: relative; }
   .chip.ink .stripes .mark { position: absolute; inset: 0; background: repeating-linear-gradient(45deg, var(--ck) 0 1.5px, transparent 1.5px 6px); }
   /* manual color mode banner */
@@ -284,27 +310,11 @@
         <button id="reupload">사진 변경</button>
       </div>
       <div id="manualWrap">
-        <span><strong>색상 직접 지정</strong><br>아래 브랜드 프리셋을 고르거나 색을 직접 바꿔보세요</span>
+        <span><strong>색상 직접 지정</strong><br>사진 없이 팔레트 색으로 만드는 중이에요. 색은 그라데이션 모드에서 바꿀 수 있어요</span>
       </div>
       <input type="file" id="fileInput" accept="image/*">
     </div>
 
-    <div>
-      <div class="section-title">대지 사이즈</div>
-      <select id="sizePreset">
-        <option value="720x320" selected>720 × 320 — 유저가이딩 업데이트 모달</option>
-        <option value="1920x1080">1920 × 1080 — FHD 배경</option>
-        <option value="1280x720">1280 × 720 — HD</option>
-        <option value="1200x630">1200 × 630 — OG 이미지</option>
-        <option value="1080x1080">1080 × 1080 — 인스타 피드</option>
-        <option value="1080x1920">1080 × 1920 — 스토리 / 릴스</option>
-        <option value="custom">직접 입력</option>
-      </select>
-      <div class="size-inputs">
-        <input type="number" id="artWInput" value="720" min="16" max="4096"> ×
-        <input type="number" id="artHInput" value="320" min="16" max="4096"> px
-      </div>
-    </div>
 
     <div>
       <div class="section-title">모드</div>
@@ -322,13 +332,13 @@
       <div class="chips" id="brandGrad"></div>
       <div class="sub-title">텍스처 프리셋 (블러 풍경)</div>
       <div class="chips" id="texGrad"></div>
-      <div class="sub-title">내 프리셋</div>
-      <select id="gradPreset" style="margin-bottom:8px">
-        <option value="">프리셋 선택…</option>
-      </select>
-      <div class="grid2" style="margin-bottom:8px">
-        <button class="shuffle-btn" id="gradSave" style="margin-top:0">현재 설정 저장</button>
-        <button class="shuffle-btn" id="gradDel" style="margin-top:0">프리셋 삭제</button>
+      <div class="sub-title">내 프리셋 <span id="gradCount" class="sub-count"></span></div>
+      <div class="preset-row">
+        <select id="gradPreset">
+          <option value="">저장한 프리셋…</option>
+        </select>
+        <button class="shuffle-btn" id="gradSave" title="현재 설정을 프리셋으로 저장">저장</button>
+        <button class="shuffle-btn" id="gradDel" title="선택한 프리셋 삭제">삭제</button>
       </div>
       <div id="gradSaveRow" style="display:none; margin-bottom:8px">
         <input type="text" id="gradName" placeholder="프리셋 이름" maxlength="20" style="width:100%">
@@ -337,9 +347,8 @@
           <button class="shuffle-btn" id="gradCancel" style="margin-top:0">취소</button>
         </div>
       </div>
-      <div id="gradCount" style="font-size:11px;color:var(--muted);margin-bottom:12px"></div>
       <div class="row" style="margin-bottom:12px">
-        <label class="small">색상 개수</label>
+        <label class="small" style="white-space:nowrap">색상 개수</label>
         <div class="count-group" id="countGroup">
           <button data-n="2">2</button>
           <button data-n="3">3</button>
@@ -383,12 +392,13 @@
 
     <div id="hatchSection" style="display:none">
       <div class="section-title">크로스해칭</div>
-      <select id="hatchPreset" style="margin-bottom:8px">
-        <option value="">프리셋 선택…</option>
-      </select>
-      <div class="grid2" style="margin-bottom:8px">
-        <button class="shuffle-btn" id="savePreset" style="margin-top:0">현재 설정 저장</button>
-        <button class="shuffle-btn" id="delPreset" style="margin-top:0">프리셋 삭제</button>
+      <div class="sub-title">내 프리셋 <span id="presetCount" class="sub-count"></span></div>
+      <div class="preset-row">
+        <select id="hatchPreset">
+          <option value="">저장한 프리셋…</option>
+        </select>
+        <button class="shuffle-btn" id="savePreset" title="현재 설정을 프리셋으로 저장">저장</button>
+        <button class="shuffle-btn" id="delPreset" title="선택한 프리셋 삭제">삭제</button>
       </div>
       <div id="presetSaveRow" style="display:none; margin-bottom:14px">
         <input type="text" id="presetName" placeholder="프리셋 이름 (예: 네이비 판화)" maxlength="20" style="width:100%">
@@ -397,7 +407,6 @@
           <button class="shuffle-btn" id="presetCancel" style="margin-top:0">취소</button>
         </div>
       </div>
-      <div id="presetCount" style="font-size:11px;color:var(--muted);margin-bottom:14px"></div>
       <div class="sub-title">그리팅 브랜드 잉크</div>
       <div class="chips" id="brandHatch"></div>
       <select id="hatchStyle" style="margin-bottom:14px">
@@ -586,38 +595,45 @@
       <div style="font-size:11px;color:var(--muted);margin-bottom:14px">캔버스를 드래그하면 사진 위치를 옮길 수 있어요</div>
     </div>
 
-    <div class="btns">
-      <div class="section-title">내보내기</div>
-      <div class="grid2">
-        <button class="action primary" id="downloadPng" disabled>PNG</button>
-        <button class="action primary" id="downloadWebp" disabled>WebP</button>
-      </div>
-      <div class="row" style="margin:4px 0">
-        <label class="small">영상 길이</label>
-        <span style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px">
-          <input type="number" id="videoSec" value="4" min="1" max="15"> 초
-        </span>
-      </div>
-      <div class="grid2">
-        <button class="action" id="downloadGif" disabled>GIF</button>
-        <button class="action" id="downloadMp4" disabled>MP4</button>
-      </div>
-      <div class="grid2">
-        <button class="action" id="downloadSvg" disabled>SVG</button>
-        <button class="action" id="downloadTxt" disabled>TXT</button>
-      </div>
-      <button class="action" id="copyCss" disabled>CSS 복사</button>
-    </div>
   </aside>
 
   <main>
+    <div class="toolbar" id="sizeBar">
+      <span class="tb-label">대지</span>
+      <select id="sizePreset">
+        <option value="720x320" selected>720 × 320 — 유저가이딩 업데이트 모달</option>
+        <option value="1920x1080">1920 × 1080 — FHD 배경</option>
+        <option value="1280x720">1280 × 720 — HD</option>
+        <option value="1200x630">1200 × 630 — OG 이미지</option>
+        <option value="1080x1080">1080 × 1080 — 인스타 피드</option>
+        <option value="1080x1920">1080 × 1920 — 스토리 / 릴스</option>
+        <option value="custom">직접 입력</option>
+      </select>
+      <span class="size-inputs" style="margin:0">
+        <input type="number" id="artWInput" value="720" min="16" max="4096"> ×
+        <input type="number" id="artHInput" value="320" min="16" max="4096"> px
+      </span>
+    </div>
     <div id="stage">
       <canvas id="meshCanvas"></canvas>
       <div id="placeholder">
         <div>사진을 업로드하거나 색상을 직접 지정하면 배경이 여기에 나타나요</div>
       </div>
     </div>
-    <div id="sizeBadge">720 × 320</div>
+    <div class="toolbar export-bar">
+      <span id="sizeBadge">720 × 320</span>
+      <span class="tb-sep"></span>
+      <button class="action primary" id="downloadPng" disabled>PNG</button>
+      <button class="action primary" id="downloadWebp" disabled>WebP</button>
+      <span class="tb-sep"></span>
+      <button class="action" id="downloadGif" disabled>GIF</button>
+      <button class="action" id="downloadMp4" disabled>MP4</button>
+      <span class="tb-dur"><input type="number" id="videoSec" value="4" min="1" max="15"> 초</span>
+      <span class="tb-sep"></span>
+      <button class="action" id="downloadSvg" disabled>SVG</button>
+      <button class="action" id="downloadTxt" disabled>TXT</button>
+      <button class="action" id="copyCss" disabled>CSS</button>
+    </div>
   </main>
 </div>
 
@@ -663,8 +679,8 @@
   /* ---------- artboard size ---------- */
   function updateStageSize() {
     const mainEl = document.querySelector('main');
-    const availW = Math.max(120, mainEl.clientWidth - 64);
-    const availH = Math.max(120, mainEl.clientHeight - 96);
+    const availW = Math.max(120, mainEl.clientWidth - 56);
+    const availH = Math.max(120, mainEl.clientHeight - 150);
     const s = Math.min(availW / artW, availH / artH, 1.2);
     const stage = $('stage');
     stage.style.width = Math.round(artW * s) + 'px';
@@ -1880,9 +1896,9 @@
   function refreshPresetList(selected) {
     const presets = lsGet('pg-hatch-presets', {});
     const sel = $('hatchPreset');
-    sel.innerHTML = '<option value="">프리셋 선택…</option>' +
+    sel.innerHTML = '<option value="">저장한 프리셋…</option>' +
       Object.keys(presets).map(n => `<option value="${n.replace(/"/g, '&quot;')}"${n === selected ? ' selected' : ''}>${n}</option>`).join('');
-    $('presetCount').textContent = `저장된 프리셋 ${Object.keys(presets).length} / ${MAX_PRESETS}`;
+    $('presetCount').textContent = `${Object.keys(presets).length}/${MAX_PRESETS}`;
   }
 
   // inline save UI (prompt()가 동작하지 않는 환경 대응)
@@ -1993,9 +2009,9 @@
   function refreshGradList(selected) {
     const presets = lsGet('pg-grad-presets', {});
     const sel = $('gradPreset');
-    sel.innerHTML = '<option value="">프리셋 선택…</option>' +
+    sel.innerHTML = '<option value="">저장한 프리셋…</option>' +
       Object.keys(presets).map(n => `<option value="${n.replace(/"/g, '&quot;')}"${n === selected ? ' selected' : ''}>${n}</option>`).join('');
-    $('gradCount').textContent = `저장된 프리셋 ${Object.keys(presets).length} / ${MAX_PRESETS}`;
+    $('gradCount').textContent = `${Object.keys(presets).length}/${MAX_PRESETS}`;
   }
 
   $('gradSave').addEventListener('click', () => {
@@ -2108,6 +2124,9 @@
 
   window.addEventListener('resize', updateStageSize);
   updateStageSize();
+  // first impression: show a gradient right away instead of an empty stage
+  setSource('color', BRAND_GRADS[0].colors);
+  $('brandGrad').querySelector('.chip')?.classList.add('active');
 
   $('animToggle').addEventListener('change', e => { animating = e.target.checked; $('streakAnim').checked = animating; });
   $('handleToggle').addEventListener('change', syncHandleVis);
