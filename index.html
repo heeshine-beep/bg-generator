@@ -270,7 +270,11 @@
 <div class="layout">
   <aside>
     <div>
-      <div class="section-title">사진</div>
+      <div class="section-title">소스</div>
+      <div class="mode-group" id="srcGroup" style="grid-template-columns:1fr 1fr;margin-bottom:10px">
+        <button data-src="photo" class="active">📷 사진</button>
+        <button data-src="color">🎨 색상</button>
+      </div>
       <div id="dropzone">
         <strong>사진을 드래그하거나 클릭</strong>
         붙여넣기(Ctrl/⌘+V)도 가능해요
@@ -281,10 +285,8 @@
       </div>
       <div id="manualWrap">
         <span>🎨</span>
-        <span><strong>색상 직접 지정</strong><br>사진 없이 팔레트로 만드는 중</span>
-        <button id="manualToPhoto">사진 추가</button>
+        <span><strong>색상 직접 지정</strong><br>아래 브랜드 프리셋을 고르거나 색을 직접 바꿔보세요</span>
       </div>
-      <button class="shuffle-btn" id="manualBtn">사진 없이 색상 직접 지정</button>
       <input type="file" id="fileInput" accept="image/*">
     </div>
 
@@ -737,7 +739,6 @@
     const up = !!colors;
     const grad = mode === 'gradient';
     $('shuffleBtn').style.display = pixels ? '' : 'none';
-    $('manualBtn').style.display = colors ? 'none' : '';
     $('paletteSection').style.display = (up && grad) ? 'block' : 'none';
     $('controlSection').style.display = (up && grad) ? 'block' : 'none';
     $('hatchSection').style.display = (up && mode === 'hatch') ? 'block' : 'none';
@@ -768,14 +769,43 @@
   });
 
   /* ---------- manual color mode (no photo) ---------- */
-  function enterManual(hexes) {
-    manualMode = true;
-    pixels = null; photoLum = null; lum = null;
-    dropzone.style.display = 'none';
-    $('thumbWrap').style.display = 'none';
-    $('manualWrap').style.display = 'flex';
-    setColors(hexes);
+  let photoStash = null; // photo kept aside while in color mode
+  function setSourceButtons(v) {
+    document.querySelectorAll('#srcGroup button').forEach(b => b.classList.toggle('active', b.dataset.src === v));
   }
+  function setSource(v, hexes) {
+    setSourceButtons(v);
+    if (v === 'color') {
+      if (pixels) photoStash = { pixels, photoLum, thumb: $('thumb').src };
+      manualMode = true;
+      pixels = null; photoLum = null; lum = null;
+      dropzone.style.display = 'none';
+      $('thumbWrap').style.display = 'none';
+      $('manualWrap').style.display = 'flex';
+      if (hexes) setColors(hexes);
+      else if (!colors) setColors(BRAND_GRADS[0].colors);
+      else { hatchDirty = true; asciiDirty = true; syncPanels(); draw(); }
+      return;
+    }
+    manualMode = false;
+    $('manualWrap').style.display = 'none';
+    if (photoStash) {
+      pixels = photoStash.pixels; photoLum = photoStash.photoLum; lum = photoLum;
+      $('thumb').src = photoStash.thumb;
+      dropzone.style.display = 'none';
+      $('thumbWrap').style.display = 'block';
+      hatchDirty = true; asciiDirty = true;
+    } else {
+      dropzone.style.display = '';
+      $('thumbWrap').style.display = 'none';
+    }
+    syncPanels();
+    if (colors) { draw(); updateHandles(); }
+  }
+  document.querySelectorAll('#srcGroup button').forEach(btn => {
+    btn.addEventListener('click', () => setSource(btn.dataset.src));
+  });
+  function enterManual(hexes) { setSource('color', hexes); }
   // replace the current palette (keeps positions / blend / motion)
   function setColors(hexes) {
     colors = hexes.map(fromHex);
@@ -787,8 +817,6 @@
   }
   // hatch / ascii read luminance from the gradient when there is no photo
   function markSourceDirty() { if (!photoLum) { hatchDirty = true; asciiDirty = true; } }
-  $('manualBtn').addEventListener('click', () => enterManual(BRAND_GRADS[0].colors));
-  $('manualToPhoto').addEventListener('click', () => fileInput.click());
 
   function renderBrandChips() {
     const g = $('brandGrad');
@@ -842,6 +870,8 @@
     const img = new Image();
     img.onload = () => {
       manualMode = false;
+      photoStash = null;
+      setSourceButtons('photo');
       $('thumb').src = url;
       dropzone.style.display = 'none';
       $('manualWrap').style.display = 'none';
