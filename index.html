@@ -283,6 +283,9 @@
   .fx-head { display: flex; align-items: center; justify-content: space-between; }
   .fx-controls { display: grid; grid-template-columns: 1fr 96px; gap: 8px; align-items: center; }
   .fx-row.off .fx-controls { display: none; }
+  .fx-body { border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 2px; }
+  .fx-body .chips { grid-template-columns: repeat(3, 1fr); }
+  .fx-body .sub-title:first-child { margin-top: 0; }
   .fx-controls select { padding: 7px 10px; font-size: 12px; }
   .fx-controls .op { display: flex; align-items: center; gap: 4px; }
   .fx-controls .op input[type="range"] { flex: 1; min-width: 0; }
@@ -369,86 +372,7 @@
           <select id="fxHatchBlend" title="블렌드 모드"></select>
           <span class="op" title="불투명도"><input type="range" id="fxHatchOp" min="0" max="100" step="1" value="85"><span class="val" id="fxHatchOpVal">85</span></span>
         </div>
-      </div>
-      <div class="fx-row off" id="fxAsciiRow">
-        <div class="fx-head">
-          <label class="small">아스키</label>
-          <span class="toggle"><input type="checkbox" id="fxAsciiOn"><span class="track" onclick="document.getElementById('fxAsciiOn').click()"></span></span>
-        </div>
-        <div class="fx-controls">
-          <select id="fxAsciiBlend" title="블렌드 모드"></select>
-          <span class="op" title="불투명도"><input type="range" id="fxAsciiOp" min="0" max="100" step="1" value="80"><span class="val" id="fxAsciiOpVal">80</span></span>
-        </div>
-      </div>
-      <div class="sub-title" style="margin:0">이펙트는 베이스 위에 블렌드 모드로 합성돼요. 사진이 있으면 사진의 명암을, 없으면 베이스 색의 명암을 따라 그려져요</div>
-    </div>
-
-    <div id="paletteSection" style="display:none">
-      <div class="section-title">색상</div>
-      <div class="sub-title">그리팅 브랜드 프리셋</div>
-      <div class="chips" id="brandGrad"></div>
-      <div class="sub-title">텍스처 프리셋 (블러 풍경)</div>
-      <div class="chips" id="texGrad"></div>
-      <div class="sub-title">내 프리셋 <span id="gradCount" class="sub-count"></span></div>
-      <div class="preset-row">
-        <select id="gradPreset">
-          <option value="">저장한 프리셋…</option>
-        </select>
-        <button class="shuffle-btn" id="gradSave" title="현재 설정을 프리셋으로 저장">저장</button>
-        <button class="shuffle-btn" id="gradDel" title="선택한 프리셋 삭제">삭제</button>
-      </div>
-      <div id="gradSaveRow" style="display:none; margin-bottom:8px">
-        <input type="text" id="gradName" placeholder="프리셋 이름" maxlength="20" style="width:100%">
-        <div class="grid2" style="margin-top:6px">
-          <button class="shuffle-btn" id="gradConfirm" style="margin-top:0">저장</button>
-          <button class="shuffle-btn" id="gradCancel" style="margin-top:0">취소</button>
-        </div>
-      </div>
-      <div class="row" style="margin-bottom:12px">
-        <label class="small" style="white-space:nowrap">색상 개수</label>
-        <div class="count-group" id="countGroup">
-          <button data-n="2">2</button>
-          <button data-n="3">3</button>
-          <button data-n="4" class="active">4</button>
-          <button data-n="5">5</button>
-          <button data-n="6">6</button>
-          <button data-n="7">7</button>
-          <button data-n="8">8</button>
-        </div>
-      </div>
-      <div class="swatches" id="swatches"></div>
-      <button class="shuffle-btn" id="shuffleBtn">다시 추출 (랜덤 시드)</button>
-    </div>
-
-    <div id="controlSection" style="display:none">
-      <div class="section-title">옵션</div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small">애니메이션</label>
-        <span class="toggle"><input type="checkbox" id="animToggle"><span class="track" onclick="document.getElementById('animToggle').click()"></span></span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">속도</label>
-        <input type="range" id="speed" min="0.2" max="3" step="0.1" value="1">
-        <span class="val" id="speedVal">1.0×</span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">섞임 정도</label>
-        <input type="range" id="blend" min="0" max="100" step="1" value="20">
-        <span class="val" id="blendLabel">20</span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">노이즈</label>
-        <input type="range" id="noise" min="0" max="100" step="1" value="12">
-        <span class="val" id="noiseLabel">12</span>
-      </div>
-      <div class="row">
-        <label class="small">색상 포인트 표시</label>
-        <span class="toggle"><input type="checkbox" id="handleToggle" checked><span class="track" onclick="document.getElementById('handleToggle').click()"></span></span>
-      </div>
-    </div>
-
-    <div id="hatchSection" style="display:none">
-      <div class="section-title">크로스해칭</div>
+    <div id="hatchSection" class="fx-body" style="display:none">
       <div class="sub-title">내 프리셋 <span id="presetCount" class="sub-count"></span></div>
       <div class="preset-row">
         <select id="hatchPreset">
@@ -535,6 +459,139 @@
       <button class="shuffle-btn" id="regenHatch" style="margin-top:0">다시 생성 (랜덤 시드)</button>
     </div>
 
+      </div>
+      <div class="fx-row off" id="fxAsciiRow">
+        <div class="fx-head">
+          <label class="small">아스키</label>
+          <span class="toggle"><input type="checkbox" id="fxAsciiOn"><span class="track" onclick="document.getElementById('fxAsciiOn').click()"></span></span>
+        </div>
+        <div class="fx-controls">
+          <select id="fxAsciiBlend" title="블렌드 모드"></select>
+          <span class="op" title="불투명도"><input type="range" id="fxAsciiOp" min="0" max="100" step="1" value="80"><span class="val" id="fxAsciiOpVal">80</span></span>
+        </div>
+    <div id="asciiSection" class="fx-body" style="display:none">
+      <select id="asciiCharset" style="margin-bottom:8px">
+        <option value="standard" selected>표준 (@%#*+=-:.)</option>
+        <option value="blocks">블록 (█▓▒░)</option>
+        <option value="dots">도트 (●◐○·)</option>
+        <option value="binary">바이너리 (10)</option>
+        <option value="custom">커스텀…</option>
+        <option value="sequence">문자 시퀀스…</option>
+      </select>
+      <input type="text" id="asciiCustom" placeholder="문자 입력" maxlength="32" style="width:100%; display:none; margin-bottom:8px">
+      <div class="row" style="margin:6px 0 14px">
+        <label class="small" style="white-space:nowrap">문자 크기</label>
+        <input type="range" id="asciiSize" min="6" max="32" step="1" value="12">
+        <span class="val" id="asciiSizeVal">12</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">문자 간격</label>
+        <input type="range" id="asciiLs" min="0.5" max="2" step="0.05" value="1">
+        <span class="val" id="asciiLsVal">1.0</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">줄 높이</label>
+        <input type="range" id="asciiLh" min="0.5" max="2" step="0.05" value="1">
+        <span class="val" id="asciiLhVal">1.0</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">대비</label>
+        <input type="range" id="asciiContrast" min="0.5" max="2" step="0.05" value="1">
+        <span class="val" id="asciiContrastVal">1.0</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small">원본 색상 사용</label>
+        <span class="toggle"><input type="checkbox" id="asciiColorMode"><span class="track" onclick="document.getElementById('asciiColorMode').click()"></span></span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small">반전</label>
+        <span class="toggle"><input type="checkbox" id="asciiInvert"><span class="track" onclick="document.getElementById('asciiInvert').click()"></span></span>
+      </div>
+      <div class="row ink-row" style="margin-bottom:14px">
+        <label class="small">글자 색</label>
+        <input type="color" id="asciiInk" value="#0a0b0d">
+      </div>
+      <div class="row ink-row" style="display:none">
+        <label class="small">배경 색</label>
+        <input type="color" id="asciiBg" value="#ffffff">
+      </div>
+      <div class="row" style="margin-bottom:6px">
+        <label class="small" style="white-space:nowrap">사진 확대</label>
+        <input type="range" id="asciiZoom" min="1" max="3" step="0.05" value="1">
+        <span class="val" id="asciiZoomVal">1.0×</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px">캔버스를 드래그하면 사진 위치를 옮길 수 있어요</div>
+    </div>
+
+      </div>
+      <div class="sub-title" style="margin:0">레이어를 켜면 블렌드 모드·불투명도와 상세 설정이 카드 안에 함께 열려요. 사진이 있으면 사진의 명암을, 없으면 베이스 색의 명암을 따라 그려져요</div>
+    </div>
+
+    <div id="paletteSection" style="display:none">
+      <div class="section-title">색상</div>
+      <div class="sub-title">그리팅 브랜드 프리셋</div>
+      <div class="chips" id="brandGrad"></div>
+      <div class="sub-title">텍스처 프리셋 (블러 풍경)</div>
+      <div class="chips" id="texGrad"></div>
+      <div class="sub-title">내 프리셋 <span id="gradCount" class="sub-count"></span></div>
+      <div class="preset-row">
+        <select id="gradPreset">
+          <option value="">저장한 프리셋…</option>
+        </select>
+        <button class="shuffle-btn" id="gradSave" title="현재 설정을 프리셋으로 저장">저장</button>
+        <button class="shuffle-btn" id="gradDel" title="선택한 프리셋 삭제">삭제</button>
+      </div>
+      <div id="gradSaveRow" style="display:none; margin-bottom:8px">
+        <input type="text" id="gradName" placeholder="프리셋 이름" maxlength="20" style="width:100%">
+        <div class="grid2" style="margin-top:6px">
+          <button class="shuffle-btn" id="gradConfirm" style="margin-top:0">저장</button>
+          <button class="shuffle-btn" id="gradCancel" style="margin-top:0">취소</button>
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:12px">
+        <label class="small" style="white-space:nowrap">색상 개수</label>
+        <div class="count-group" id="countGroup">
+          <button data-n="2">2</button>
+          <button data-n="3">3</button>
+          <button data-n="4" class="active">4</button>
+          <button data-n="5">5</button>
+          <button data-n="6">6</button>
+          <button data-n="7">7</button>
+          <button data-n="8">8</button>
+        </div>
+      </div>
+      <div class="swatches" id="swatches"></div>
+      <button class="shuffle-btn" id="shuffleBtn">다시 추출 (랜덤 시드)</button>
+    </div>
+
+    <div id="controlSection" style="display:none">
+      <div class="section-title">옵션</div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small">애니메이션</label>
+        <span class="toggle"><input type="checkbox" id="animToggle"><span class="track" onclick="document.getElementById('animToggle').click()"></span></span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">속도</label>
+        <input type="range" id="speed" min="0.2" max="3" step="0.1" value="1">
+        <span class="val" id="speedVal">1.0×</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">섞임 정도</label>
+        <input type="range" id="blend" min="0" max="100" step="1" value="20">
+        <span class="val" id="blendLabel">20</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">노이즈</label>
+        <input type="range" id="noise" min="0" max="100" step="1" value="12">
+        <span class="val" id="noiseLabel">12</span>
+      </div>
+      <div class="row">
+        <label class="small">색상 포인트 표시</label>
+        <span class="toggle"><input type="checkbox" id="handleToggle" checked><span class="track" onclick="document.getElementById('handleToggle').click()"></span></span>
+      </div>
+    </div>
+
+
     <div id="streakSection" style="display:none">
       <div class="section-title">모션 블러</div>
       <select id="streakType" style="margin-bottom:14px">
@@ -597,60 +654,6 @@
       <button class="shuffle-btn" id="regenStreak" style="margin-top:0">다시 생성 (랜덤 시드)</button>
     </div>
 
-    <div id="asciiSection" style="display:none">
-      <div class="section-title">아스키 아트</div>
-      <select id="asciiCharset" style="margin-bottom:8px">
-        <option value="standard" selected>표준 (@%#*+=-:.)</option>
-        <option value="blocks">블록 (█▓▒░)</option>
-        <option value="dots">도트 (●◐○·)</option>
-        <option value="binary">바이너리 (10)</option>
-        <option value="custom">커스텀…</option>
-        <option value="sequence">문자 시퀀스…</option>
-      </select>
-      <input type="text" id="asciiCustom" placeholder="문자 입력" maxlength="32" style="width:100%; display:none; margin-bottom:8px">
-      <div class="row" style="margin:6px 0 14px">
-        <label class="small" style="white-space:nowrap">문자 크기</label>
-        <input type="range" id="asciiSize" min="6" max="32" step="1" value="12">
-        <span class="val" id="asciiSizeVal">12</span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">문자 간격</label>
-        <input type="range" id="asciiLs" min="0.5" max="2" step="0.05" value="1">
-        <span class="val" id="asciiLsVal">1.0</span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">줄 높이</label>
-        <input type="range" id="asciiLh" min="0.5" max="2" step="0.05" value="1">
-        <span class="val" id="asciiLhVal">1.0</span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small" style="white-space:nowrap">대비</label>
-        <input type="range" id="asciiContrast" min="0.5" max="2" step="0.05" value="1">
-        <span class="val" id="asciiContrastVal">1.0</span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small">원본 색상 사용</label>
-        <span class="toggle"><input type="checkbox" id="asciiColorMode"><span class="track" onclick="document.getElementById('asciiColorMode').click()"></span></span>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <label class="small">반전</label>
-        <span class="toggle"><input type="checkbox" id="asciiInvert"><span class="track" onclick="document.getElementById('asciiInvert').click()"></span></span>
-      </div>
-      <div class="row ink-row" style="margin-bottom:14px">
-        <label class="small">글자 색</label>
-        <input type="color" id="asciiInk" value="#0a0b0d">
-      </div>
-      <div class="row ink-row" style="display:none">
-        <label class="small">배경 색</label>
-        <input type="color" id="asciiBg" value="#ffffff">
-      </div>
-      <div class="row" style="margin-bottom:6px">
-        <label class="small" style="white-space:nowrap">사진 확대</label>
-        <input type="range" id="asciiZoom" min="1" max="3" step="0.05" value="1">
-        <span class="val" id="asciiZoomVal">1.0×</span>
-      </div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:14px">캔버스를 드래그하면 사진 위치를 옮길 수 있어요</div>
-    </div>
 
   </aside>
 
