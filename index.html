@@ -104,10 +104,10 @@
   .color-row input[type="range"] { flex: 1; min-width: 0; }
   .color-row .val { width: 34px; text-align: right; font-size: 11px; color: var(--muted); flex: none; font-variant-numeric: tabular-nums; }
   .val { width: 38px; text-align: right; font-size: 12px; color: var(--muted); flex: none; font-variant-numeric: tabular-nums; }
-  .mode-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .mode-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .mode-group button {
-    height: 34px; border-radius: 6px; border: 1px solid var(--border);
-    background: transparent; color: var(--body-c); font-size: 13px; font-weight: 600;
+    height: 34px; border-radius: 6px; border: 1px solid var(--border); padding: 0 2px;
+    background: transparent; color: var(--body-c); font-size: 12px; font-weight: 600;
     cursor: pointer; transition: .15s;
   }
   .mode-group button:hover { border-color: var(--accent); color: var(--accent); }
@@ -311,6 +311,7 @@
         <button data-mode="gradient" class="active">그라데이션</button>
         <button data-mode="hatch">크로스해칭</button>
         <button data-mode="ascii">아스키</button>
+        <button data-mode="streak">모션 블러</button>
       </div>
     </div>
 
@@ -460,6 +461,55 @@
       </div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:14px">캔버스를 드래그하면 사진 위치를 옮길 수 있어요</div>
       <button class="shuffle-btn" id="regenHatch" style="margin-top:0">↻ 다시 생성 (랜덤 시드)</button>
+    </div>
+
+    <div id="streakSection" style="display:none">
+      <div class="section-title">모션 블러</div>
+      <select id="streakType" style="margin-bottom:14px">
+        <option value="radial" selected>방사형 (소실점에서 퍼짐)</option>
+        <option value="linear">직선 (한 방향)</option>
+      </select>
+      <div class="row" id="streakAngleRow" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">각도</label>
+        <input type="range" id="streakAngle" min="0" max="180" step="1" value="35">
+        <span class="val" id="streakAngleVal">35°</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">줄기 밀도</label>
+        <input type="range" id="streakDensity" min="1" max="20" step="1" value="4">
+        <span class="val" id="streakDensityVal">4</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">부드러움</label>
+        <input type="range" id="streakSoft" min="0" max="100" step="1" value="55">
+        <span class="val" id="streakSoftVal">55</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">하이라이트</label>
+        <input type="range" id="streakGlow" min="0" max="100" step="1" value="60">
+        <span class="val" id="streakGlowVal">60</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">색 대비</label>
+        <input type="range" id="streakContrast" min="0" max="100" step="1" value="50">
+        <span class="val" id="streakContrastVal">50</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">노이즈</label>
+        <input type="range" id="streakNoise" min="0" max="100" step="1" value="12">
+        <span class="val" id="streakNoiseVal">12</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small">애니메이션</label>
+        <span class="toggle"><input type="checkbox" id="streakAnim"><span class="track" onclick="document.getElementById('streakAnim').click()"></span></span>
+      </div>
+      <div class="row" style="margin-bottom:6px">
+        <label class="small" style="white-space:nowrap">속도</label>
+        <input type="range" id="streakSpeed" min="0.2" max="3" step="0.1" value="1">
+        <span class="val" id="streakSpeedVal">1.0×</span>
+      </div>
+      <div id="streakHint" style="font-size:11px;color:var(--muted);margin-bottom:14px">캔버스를 드래그하면 소실점 위치를 옮길 수 있어요</div>
+      <button class="shuffle-btn" id="regenStreak" style="margin-top:0">↻ 다시 생성 (랜덤 시드)</button>
     </div>
 
     <div id="asciiSection" style="display:none">
@@ -672,6 +722,7 @@
     { name: 'AX 크림', colors: ['#f2f2e8', '#ffffff', '#90e878', '#51a2ff'] },
     { name: '마그넷', colors: ['#05060a', '#2b5cff', '#40bcff', '#8c92a2'] },
     { name: '웜 포인트', colors: ['#fff6e0', '#ffffff', '#e8590c', '#1890ff'] },
+    { name: '그린 소프트', colors: ['#6f9a4a', '#a9c88a', '#dce8d9', '#f2f2e8'] },
   ];
   const BRAND_INKS = [
     { name: '네이비 × 크림', ink: '#001946', bg: '#f2f2e8' },
@@ -691,14 +742,17 @@
     $('controlSection').style.display = (up && grad) ? 'block' : 'none';
     $('hatchSection').style.display = (up && mode === 'hatch') ? 'block' : 'none';
     $('asciiSection').style.display = (up && mode === 'ascii') ? 'block' : 'none';
+    $('streakSection').style.display = (up && mode === 'streak') ? 'block' : 'none';
+    if (mode === 'streak') applyStreakUI();
+    const motion = grad || mode === 'streak';
     $('downloadPng').disabled = !up;
     $('downloadWebp').disabled = !up;
-    $('downloadGif').disabled = !up || !grad;
-    $('downloadMp4').disabled = !up || !grad;
+    $('downloadGif').disabled = !up || !motion;
+    $('downloadMp4').disabled = !up || !motion;
     $('copyCss').disabled = !up || !grad;
     $('downloadSvg').disabled = !up || mode !== 'hatch';
     $('downloadTxt').disabled = !up || mode !== 'ascii';
-    $('stage').classList.toggle('hatch-mode', !grad); // grab cursor for photo pan
+    $('stage').classList.toggle('hatch-mode', !grad); // grab cursor for photo pan / focal drag
     syncHandleVis();
   }
   function syncHandleVis() {
@@ -1360,6 +1414,110 @@
   $('hatchBg').addEventListener('input', e => { hatch.bg = e.target.value; hatchDirty = true; if (mode === 'hatch') draw(); });
   $('regenHatch').addEventListener('click', () => { hatch.seed = Math.floor(Math.random() * 1e9); hatchDirty = true; if (mode === 'hatch') draw(); });
 
+  /* ---------- motion-blur light streak engine ---------- */
+  const streak = {
+    type: 'radial', angle: 35, fx: -0.08, fy: 1.12,
+    density: 4, soft: 55, glow: 60, contrast: 50, seed: 7,
+  };
+  let streakPhases = null;
+  function buildStreakPhases() {
+    const r = seededRand(streak.seed);
+    streakPhases = Array.from({ length: 16 }, () => r() * Math.PI * 2);
+  }
+  const lerpC = (a, b, t) => ({ r: a.r + (b.r - a.r) * t, g: a.g + (b.g - a.g) * t, b: a.b + (b.b - a.b) * t });
+  const lumOf = c => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+  // palette as a continuous ramp, v 0..1
+  function paletteAt(v) {
+    const n = colors.length;
+    if (n === 1) return colors[0];
+    const x = Math.min(0.9999, Math.max(0, v)) * (n - 1);
+    const i = Math.floor(x);
+    return lerpC(colors[i], colors[i + 1], x - i);
+  }
+  function renderStreak(tctx, w, h, t) {
+    if (!streakPhases) buildStreakPhases();
+    const img = tctx.createImageData(w, h), d = img.data, ph = streakPhases;
+    const octaves = 2 + Math.round((100 - streak.soft) / 100 * 5); // 2..7 detail levels
+    const base = streak.density;
+    const glow = streak.glow / 100, con = 0.35 + streak.contrast / 100 * 0.9;
+    const light = colors.reduce((a, c) => lumOf(c) > lumOf(a) ? c : a);
+    const dark = colors.reduce((a, c) => lumOf(c) < lumOf(a) ? c : a);
+    const radial = streak.type === 'radial';
+    const fx = streak.fx * w, fy = streak.fy * h;
+    const a = streak.angle * Math.PI / 180, nx = -Math.sin(a), ny = Math.cos(a);
+    const M = Math.max(w, h);
+    let k = 0;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        // band coordinate: constant along the streak direction
+        const u = radial ? Math.atan2(y - fy, x - fx) / Math.PI : ((x - w / 2) * nx + (y - h / 2) * ny) / M;
+        // color ramp profile
+        let v = 0, amp = 1, sum = 0, f = base;
+        for (let o = 0; o < octaves; o++) {
+          v += amp * Math.sin(u * f * Math.PI * 2 + ph[o] + t * 0.6 * (o % 2 ? 1 : -1));
+          sum += amp; amp *= 0.55; f *= 1.9;
+        }
+        let c = paletteAt(0.5 + 0.5 * (v / sum) * con);
+        // highlight / shadow streaks at a different rhythm
+        let b = 0; amp = 1; sum = 0; f = base * 1.3;
+        for (let o = 0; o < octaves; o++) {
+          b += amp * Math.sin(u * f * Math.PI * 2 + ph[8 + o] - t * 0.4);
+          sum += amp; amp *= 0.5; f *= 2.1;
+        }
+        b = (b / sum) * glow;
+        c = b > 0 ? lerpC(c, light, b) : lerpC(c, dark, -b * 0.6);
+        d[k++] = c.r; d[k++] = c.g; d[k++] = c.b; d[k++] = 255;
+      }
+    }
+    tctx.putImageData(img, 0, 0);
+  }
+
+  // soft perpendicular blur, scaled to output width so exports match the preview
+  const streakBlurPx = W => (streak.soft / 100) * 2.5 * (W / 720);
+  function persistStreak() { lsSet('pg-streak-last', { ...streak }); }
+  function applyStreakUI() {
+    $('streakType').value = streak.type;
+    $('streakAngleRow').style.display = streak.type === 'linear' ? 'flex' : 'none';
+    $('streakHint').style.display = streak.type === 'radial' ? 'block' : 'none';
+    $('streakAngle').value = streak.angle;       $('streakAngleVal').textContent = streak.angle + '°';
+    $('streakDensity').value = streak.density;   $('streakDensityVal').textContent = streak.density;
+    $('streakSoft').value = streak.soft;         $('streakSoftVal').textContent = streak.soft;
+    $('streakGlow').value = streak.glow;         $('streakGlowVal').textContent = streak.glow;
+    $('streakContrast').value = streak.contrast; $('streakContrastVal').textContent = streak.contrast;
+    // shared state with gradient mode
+    $('streakNoise').value = Math.round(noiseAmount * 100); $('streakNoiseVal').textContent = Math.round(noiseAmount * 100);
+    $('streakAnim').checked = animating;
+    $('streakSpeed').value = speed;              $('streakSpeedVal').textContent = speed.toFixed(1) + '×';
+  }
+  const streakRedraw = () => { persistStreak(); if (mode === 'streak') draw(); };
+  $('streakType').addEventListener('change', e => { streak.type = e.target.value; applyStreakUI(); streakRedraw(); });
+  [['streakAngle', 'angle', v => v + '°'], ['streakDensity', 'density', v => v], ['streakSoft', 'soft', v => v],
+   ['streakGlow', 'glow', v => v], ['streakContrast', 'contrast', v => v]].forEach(([id, prop, fmt]) => {
+    $(id).addEventListener('input', e => {
+      streak[prop] = parseInt(e.target.value, 10);
+      $(id + 'Val').textContent = fmt(streak[prop]);
+      streakRedraw();
+    });
+  });
+  $('streakNoise').addEventListener('input', e => {
+    noiseAmount = parseInt(e.target.value, 10) / 100;
+    $('streakNoiseVal').textContent = e.target.value;
+    $('noise').value = e.target.value; $('noiseLabel').textContent = e.target.value;
+    if (!animating) draw();
+  });
+  $('streakAnim').addEventListener('change', e => { animating = e.target.checked; $('animToggle').checked = animating; });
+  $('streakSpeed').addEventListener('input', e => {
+    speed = parseFloat(e.target.value);
+    $('streakSpeedVal').textContent = speed.toFixed(1) + '×';
+    $('speed').value = speed; $('speedVal').textContent = speed.toFixed(1) + '×';
+  });
+  $('regenStreak').addEventListener('click', () => { streak.seed = Math.floor(Math.random() * 1e9); buildStreakPhases(); streakRedraw(); });
+  (function restoreStreak() {
+    const last = lsGet('pg-streak-last', null);
+    if (last) Object.assign(streak, last);
+    buildStreakPhases();
+  })();
+
   /* ---------- ASCII art engine ---------- */
   const ascii = {
     charset: 'standard', custom: '', size: 12, colorMode: false,
@@ -1543,14 +1701,34 @@
   $('hatchZoom').addEventListener('input', e => setZoom(parseFloat(e.target.value)));
   $('asciiZoom').addEventListener('input', e => setZoom(parseFloat(e.target.value)));
 
-  let panning = null, panRaf = false;
+  let panning = null, panRaf = false, focalDrag = false;
+  function setFocalFromPointer(e) {
+    const rect = $('stage').getBoundingClientRect();
+    streak.fx = (e.clientX - rect.left) / rect.width;
+    streak.fy = (e.clientY - rect.top) / rect.height;
+  }
   canvas.addEventListener('pointerdown', e => {
-    if (mode === 'gradient' || !ensureLum()) return;
+    if (mode === 'gradient') return;
+    if (mode === 'streak') {
+      if (streak.type !== 'radial') return;
+      e.preventDefault();
+      focalDrag = true;
+      canvas.setPointerCapture(e.pointerId);
+      setFocalFromPointer(e);
+      draw();
+      return;
+    }
+    if (!ensureLum()) return;
     e.preventDefault();
     panning = { x: e.clientX, y: e.clientY, ox: hatch.offX, oy: hatch.offY };
     canvas.setPointerCapture(e.pointerId);
   });
   canvas.addEventListener('pointermove', e => {
+    if (focalDrag) {
+      setFocalFromPointer(e);
+      if (!panRaf) { panRaf = true; requestAnimationFrame(() => { panRaf = false; draw(); }); }
+      return;
+    }
     if (!panning) return;
     const stage = $('stage');
     hatch.offX = panning.ox + (e.clientX - panning.x) / stage.clientWidth;
@@ -1565,6 +1743,7 @@
   });
   ['pointerup', 'pointercancel'].forEach(ev => canvas.addEventListener(ev, () => {
     if (panning) { panning = null; persistLastHatch(); }
+    if (focalDrag) { focalDrag = false; persistStreak(); }
   }));
 
   /* ---------- hatch presets & persistence ---------- */
@@ -1789,6 +1968,18 @@
       ctx.drawImage(asciiCanvas, 0, 0, dw, dh);
       return;
     }
+    if (mode === 'streak') {
+      const sw = 360, sh = Math.max(2, Math.round(360 * dh / Math.max(dw, 1)));
+      if (off.width !== sw || off.height !== sh) { off.width = sw; off.height = sh; }
+      renderStreak(offCtx, sw, sh, time);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.filter = `blur(${streakBlurPx(dw).toFixed(1)}px)`;
+      ctx.drawImage(off, 0, 0, dw, dh);
+      ctx.filter = 'none';
+      applyNoise(ctx, dw, dh);
+      return;
+    }
     const lw = 240, lh = Math.max(2, Math.round(240 * dh / Math.max(dw, 1)));
     if (off.width !== lw || off.height !== lh) { off.width = lw; off.height = lh; }
     renderMesh(offCtx, lw, lh, time);
@@ -1803,13 +1994,13 @@
     if (lastTs == null) lastTs = ts || 0;
     const dt = ((ts || 0) - lastTs) / 1000;
     lastTs = ts || 0;
-    if (animating && mode === 'gradient') { time += dt * speed * TIME_SCALE; draw(); updateHandles(); }
+    if (animating && (mode === 'gradient' || mode === 'streak')) { time += dt * speed * TIME_SCALE; draw(); updateHandles(); }
   }
 
   window.addEventListener('resize', updateStageSize);
   updateStageSize();
 
-  $('animToggle').addEventListener('change', e => { animating = e.target.checked; });
+  $('animToggle').addEventListener('change', e => { animating = e.target.checked; $('streakAnim').checked = animating; });
   $('handleToggle').addEventListener('change', syncHandleVis);
   $('speed').addEventListener('input', e => {
     speed = parseFloat(e.target.value);
@@ -1873,6 +2064,19 @@
       }
       return target;
     }
+    if (mode === 'streak') {
+      const sw = Math.min(1280, W), sh = Math.max(2, Math.round(sw * H / W));
+      const lo = document.createElement('canvas');
+      lo.width = sw; lo.height = sh;
+      renderStreak(lo.getContext('2d'), sw, sh, t);
+      tctx.imageSmoothingEnabled = true;
+      tctx.imageSmoothingQuality = 'high';
+      tctx.filter = `blur(${streakBlurPx(W).toFixed(1)}px)`;
+      tctx.drawImage(lo, 0, 0, W, H);
+      tctx.filter = 'none';
+      applyNoise(tctx, W, H);
+      return target;
+    }
     const lw = Math.min(320, W);
     const lh = Math.max(2, Math.round(lw * H / W));
     const lo = document.createElement('canvas');
@@ -1908,7 +2112,8 @@
     const c = renderFrame(document.createElement('canvas'), artW, artH, time);
     c.toBlob(blob => {
       if (!blob || blob.type !== type) { toast(ext.toUpperCase() + ' 저장을 지원하지 않는 브라우저예요'); return; }
-      downloadBlob(blob, `gradient-${artW}x${artH}.${ext}`);
+      const prefix = { gradient: 'gradient', hatch: 'hatching', ascii: 'ascii', streak: 'streak' }[mode] || 'bg';
+      downloadBlob(blob, `${prefix}-${artW}x${artH}.${ext}`);
       toast(`${ext.toUpperCase()} 다운로드 시작 (${artW}×${artH})`);
     }, type, 0.95);
   }
@@ -1942,7 +2147,7 @@
         gif.addFrame(c, { copy: true, delay: Math.round(1000 / fps) });
       }
       gif.on('finished', blob => {
-        downloadBlob(blob, `gradient-${W}x${H}-${dur}s.gif`);
+        downloadBlob(blob, `${mode === 'streak' ? 'streak' : 'gradient'}-${W}x${H}-${dur}s.gif`);
         toast(`GIF 다운로드 시작 (${W}×${H}, ${dur}초)`);
         done();
       });
@@ -1971,7 +2176,7 @@
     const chunks = [];
     rec.ondataavailable = e => e.data.size && chunks.push(e.data);
     rec.onstop = () => {
-      downloadBlob(new Blob(chunks, { type: mime }), `gradient-${artW}x${artH}-${dur}s.${ext}`);
+      downloadBlob(new Blob(chunks, { type: mime }), `${mode === 'streak' ? 'streak' : 'gradient'}-${artW}x${artH}-${dur}s.${ext}`);
       toast(`${ext.toUpperCase()} 다운로드 시작 (${artW}×${artH}, ${dur}초)` + (ext === 'webm' ? ' — MP4 미지원 브라우저라 WebM으로 저장했어요' : ''));
       done();
     };
