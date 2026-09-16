@@ -275,6 +275,19 @@
   .layer-row .rm:hover { color: #e5484d; }
   .sub-title { font-size: 11px; color: var(--muted); margin: 0 0 8px; }
 
+  /* effect layers */
+  .fx-row {
+    display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; margin-bottom: 8px;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--bg);
+  }
+  .fx-head { display: flex; align-items: center; justify-content: space-between; }
+  .fx-controls { display: grid; grid-template-columns: 1fr 96px; gap: 8px; align-items: center; }
+  .fx-row.off .fx-controls { display: none; }
+  .fx-controls select { padding: 7px 10px; font-size: 12px; }
+  .fx-controls .op { display: flex; align-items: center; gap: 4px; }
+  .fx-controls .op input[type="range"] { flex: 1; min-width: 0; }
+  .fx-controls .op .val { width: 26px; font-size: 11px; }
+
   /* history strip */
   .history { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 1100px; justify-content: center; min-height: 52px; }
   .history .hint { font-size: 12px; color: var(--muted); }
@@ -338,13 +351,36 @@
 
 
     <div>
-      <div class="section-title">모드</div>
-      <div class="mode-group" id="modeGroup">
+      <div class="section-title">베이스 (색상)</div>
+      <div class="mode-group" id="modeGroup" style="grid-template-columns:1fr 1fr">
         <button data-mode="gradient" class="active">그라데이션</button>
-        <button data-mode="hatch">크로스해칭</button>
-        <button data-mode="ascii">아스키</button>
         <button data-mode="streak">모션 블러</button>
       </div>
+    </div>
+
+    <div>
+      <div class="section-title">이펙트 레이어</div>
+      <div class="fx-row off" id="fxHatchRow">
+        <div class="fx-head">
+          <label class="small">크로스해칭</label>
+          <span class="toggle"><input type="checkbox" id="fxHatchOn"><span class="track" onclick="document.getElementById('fxHatchOn').click()"></span></span>
+        </div>
+        <div class="fx-controls">
+          <select id="fxHatchBlend" title="블렌드 모드"></select>
+          <span class="op" title="불투명도"><input type="range" id="fxHatchOp" min="0" max="100" step="1" value="85"><span class="val" id="fxHatchOpVal">85</span></span>
+        </div>
+      </div>
+      <div class="fx-row off" id="fxAsciiRow">
+        <div class="fx-head">
+          <label class="small">아스키</label>
+          <span class="toggle"><input type="checkbox" id="fxAsciiOn"><span class="track" onclick="document.getElementById('fxAsciiOn').click()"></span></span>
+        </div>
+        <div class="fx-controls">
+          <select id="fxAsciiBlend" title="블렌드 모드"></select>
+          <span class="op" title="불투명도"><input type="range" id="fxAsciiOp" min="0" max="100" step="1" value="80"><span class="val" id="fxAsciiOpVal">80</span></span>
+        </div>
+      </div>
+      <div class="sub-title" style="margin:0">이펙트는 베이스 위에 블렌드 모드로 합성돼요. 사진이 있으면 사진의 명암을, 없으면 베이스 색의 명암을 따라 그려져요</div>
     </div>
 
     <div id="paletteSection" style="display:none">
@@ -486,7 +522,7 @@
         <input type="range" id="inkOpacity" min="5" max="100" step="1" value="80">
         <span class="val" id="inkOpacityVal">80</span>
       </div>
-      <div class="row ink-row" style="margin-bottom:14px">
+      <div class="row ink-row" style="display:none">
         <label class="small">배경 색</label>
         <input type="color" id="hatchBg" value="#faf6ee">
       </div>
@@ -604,7 +640,7 @@
         <label class="small">글자 색</label>
         <input type="color" id="asciiInk" value="#0a0b0d">
       </div>
-      <div class="row ink-row" style="margin-bottom:14px">
+      <div class="row ink-row" style="display:none">
         <label class="small">배경 색</label>
         <input type="color" id="asciiBg" value="#ffffff">
       </div>
@@ -802,25 +838,63 @@
   ];
   let manualMode = false; // true = colors chosen by hand, no photo
 
+  /* ---------- effect layers on top of the base ---------- */
+  const BLENDS = [
+    ['source-over', '일반 (Normal)'], ['multiply', '곱하기 (Multiply)'], ['screen', '스크린 (Screen)'],
+    ['overlay', '오버레이 (Overlay)'], ['darken', '어둡게 (Darken)'], ['lighten', '밝게 (Lighten)'],
+    ['color-dodge', '컬러 닷지 (Color Dodge)'], ['color-burn', '컬러 번 (Color Burn)'],
+    ['hard-light', '하드 라이트 (Hard Light)'], ['soft-light', '소프트 라이트 (Soft Light)'],
+    ['difference', '차이 (Difference)'], ['exclusion', '제외 (Exclusion)'],
+    ['hue', '색조 (Hue)'], ['saturation', '채도 (Saturation)'], ['color', '색상 (Color)'], ['luminosity', '광도 (Luminosity)'],
+  ];
+  const fx = {
+    hatch: { on: false, blend: 'multiply', opacity: 0.85 },
+    ascii: { on: false, blend: 'overlay', opacity: 0.8 },
+  };
+  const FX_IDS = { hatch: ['fxHatchRow', 'fxHatchOn', 'fxHatchBlend', 'fxHatchOp', 'fxHatchOpVal'], ascii: ['fxAsciiRow', 'fxAsciiOn', 'fxAsciiBlend', 'fxAsciiOp', 'fxAsciiOpVal'] };
+  const anyFx = () => fx.hatch.on || fx.ascii.on;
+  function persistFx() { lsSet('pg-fx', fx); }
+  function applyFxUI() {
+    for (const key of Object.keys(fx)) {
+      const [row, on, blend, op, opVal] = FX_IDS[key].map(id => $(id));
+      row.classList.toggle('off', !fx[key].on);
+      on.checked = fx[key].on;
+      blend.value = fx[key].blend;
+      op.value = Math.round(fx[key].opacity * 100); opVal.textContent = op.value;
+    }
+  }
+  (function initFx() {
+    const saved = lsGet('pg-fx', null);
+    if (saved) for (const key of Object.keys(fx)) if (saved[key]) Object.assign(fx[key], saved[key]);
+    for (const key of Object.keys(fx)) {
+      const [row, on, blend, op, opVal] = FX_IDS[key].map(id => $(id));
+      blend.innerHTML = BLENDS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+      on.addEventListener('change', () => { fx[key].on = on.checked; row.classList.toggle('off', !on.checked); persistFx(); syncPanels(); draw(); });
+      blend.addEventListener('change', () => { fx[key].blend = blend.value; persistFx(); draw(); });
+      op.addEventListener('input', () => { fx[key].opacity = parseInt(op.value, 10) / 100; opVal.textContent = op.value; persistFx(); draw(); });
+    }
+    applyFxUI();
+  })();
+
   function syncPanels() {
     const up = !!colors;
     const grad = mode === 'gradient';
     $('shuffleBtn').style.display = pixels ? '' : 'none';
-    $('paletteSection').style.display = (up && grad) ? 'block' : 'none';
+    $('paletteSection').style.display = up ? 'block' : 'none';
     $('controlSection').style.display = (up && grad) ? 'block' : 'none';
-    $('hatchSection').style.display = (up && mode === 'hatch') ? 'block' : 'none';
-    $('asciiSection').style.display = (up && mode === 'ascii') ? 'block' : 'none';
-    $('streakSection').style.display = (up && mode === 'streak') ? 'block' : 'none';
-    if (mode === 'streak') applyStreakUI();
-    const motion = grad || mode === 'streak';
+    $('streakSection').style.display = (up && !grad) ? 'block' : 'none';
+    $('hatchSection').style.display = (up && fx.hatch.on) ? 'block' : 'none';
+    $('asciiSection').style.display = (up && fx.ascii.on) ? 'block' : 'none';
+    if (!grad) applyStreakUI();
     $('downloadPng').disabled = !up;
     $('downloadWebp').disabled = !up;
-    $('downloadGif').disabled = !up || !motion;
-    $('downloadMp4').disabled = !up || !motion;
+    $('downloadGif').disabled = !up;
+    $('downloadMp4').disabled = !up;
     $('copyCss').disabled = !up || !grad;
-    $('downloadSvg').disabled = !up || mode !== 'hatch';
-    $('downloadTxt').disabled = !up || mode !== 'ascii';
-    $('stage').classList.toggle('hatch-mode', !grad); // grab cursor for photo pan / focal drag
+    $('downloadSvg').disabled = !up || !fx.hatch.on;
+    $('downloadTxt').disabled = !up || !fx.ascii.on;
+    // grab cursor when the canvas can be dragged: streak focal point, or photo pan under effects
+    $('stage').classList.toggle('hatch-mode', (!grad && streak.type === 'radial') || (anyFx() && !!pixels));
     syncHandleVis();
   }
   function syncHandleVis() {
@@ -829,6 +903,7 @@
   function setMode(m) {
     mode = m;
     document.querySelectorAll('#modeGroup button').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+    markSourceDirty(); // effects follow the base when there is no photo
     syncPanels();
     if (colors) { draw(); updateHandles(); }
   }
@@ -930,7 +1005,7 @@
       b.addEventListener('click', () => {
         hatch.ink = p.ink; hatch.bg = p.bg;
         applyHatchUI(); persistLastHatch();
-        hatchDirty = true; if (mode === 'hatch') draw();
+        hatchDirty = true; if (fx.hatch.on) draw();
         h.querySelectorAll('.chip').forEach(x => x.classList.toggle('active', x === b));
         toast(`브랜드 잉크 "${p.name}" 적용됨`);
       });
@@ -1317,7 +1392,7 @@
     const c = document.createElement('canvas');
     c.width = w; c.height = h;
     const cc = c.getContext('2d');
-    renderMesh(cc, w, h, time);
+    if (mode === 'streak') renderStreak(cc, w, h, time); else renderMesh(cc, w, h, time);
     const data = cc.getImageData(0, 0, w, h).data;
     let lo = 1, hi = 0;
     for (let i = 0; i < data.length; i += 4) {
@@ -1426,8 +1501,7 @@
   }
 
   function renderHatchGeom(tctx, g) {
-    tctx.fillStyle = g.bg;
-    tctx.fillRect(0, 0, g.W, g.H);
+    tctx.clearRect(0, 0, g.W, g.H); // transparent: composited over the base
     tctx.lineCap = 'round';
     tctx.lineJoin = 'round';
     for (const st of g.strokes) {
@@ -1463,7 +1537,6 @@
     const f = n => Math.round(n * 10) / 10;
     const parts = [
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${g.W} ${g.H}" width="${g.W}" height="${g.H}">`,
-      `<rect width="${g.W}" height="${g.H}" fill="${g.bg}"/>`,
       `<g stroke="${g.ink}" fill="none" stroke-linecap="round" stroke-linejoin="round">`,
     ];
     for (const st of g.strokes) {
@@ -1497,25 +1570,25 @@
       const label = $(id + 'Val');
       if (label) label.textContent = fmt(v, e.target.value);
       hatchDirty = true;
-      if (mode === 'hatch') draw();
+      if (fx.hatch.on) draw();
     });
   });
   $('hatchStyle').addEventListener('change', e => {
     hatch.style = e.target.value;
     if (STYLE_LAYERS[hatch.style]) hatch.layers = layersFor(hatch.style);
     renderLayerRows();
-    hatchDirty = true; if (mode === 'hatch') draw();
+    hatchDirty = true; if (fx.hatch.on) draw();
   });
   $('hatchAngle').addEventListener('input', e => {
     hatch.angle = parseInt(e.target.value, 10);
     $('hatchAngleVal').textContent = hatch.angle + '°';
-    hatchDirty = true; if (mode === 'hatch') draw();
+    hatchDirty = true; if (fx.hatch.on) draw();
   });
   // any edit to a layer turns the style into "custom"
   function layersEdited() {
     if (hatch.style !== 'stipple') { hatch.style = 'custom'; $('hatchStyle').value = 'custom'; }
     persistLastHatch();
-    hatchDirty = true; if (mode === 'hatch') draw();
+    hatchDirty = true; if (fx.hatch.on) draw();
   }
   function renderLayerRows() {
     const wrap = $('hatchLayers');
@@ -1549,9 +1622,9 @@
     hatch.layers.push({ deg: (last.deg + 45) % 180, thr: Math.min(0.9, last.thr + 0.15), frac: 0, ink: null, on: true });
     renderLayerRows(); layersEdited();
   });
-  $('inkColor').addEventListener('input', e => { hatch.ink = e.target.value; hatchDirty = true; if (mode === 'hatch') draw(); });
-  $('hatchBg').addEventListener('input', e => { hatch.bg = e.target.value; hatchDirty = true; if (mode === 'hatch') draw(); });
-  $('regenHatch').addEventListener('click', () => { hatch.seed = Math.floor(Math.random() * 1e9); hatchDirty = true; if (mode === 'hatch') draw(); });
+  $('inkColor').addEventListener('input', e => { hatch.ink = e.target.value; hatchDirty = true; if (fx.hatch.on) draw(); });
+  $('hatchBg').addEventListener('input', e => { hatch.bg = e.target.value; hatchDirty = true; if (fx.hatch.on) draw(); });
+  $('regenHatch').addEventListener('click', () => { hatch.seed = Math.floor(Math.random() * 1e9); hatchDirty = true; if (fx.hatch.on) draw(); });
 
   /* ---------- motion-blur light streak engine ---------- */
   const streak = {
@@ -1630,7 +1703,7 @@
     $('streakAnim').checked = animating;
     $('streakSpeed').value = speed;              $('streakSpeedVal').textContent = speed.toFixed(1) + '×';
   }
-  const streakRedraw = () => { persistStreak(); if (mode === 'streak') draw(); };
+  const streakRedraw = () => { persistStreak(); if (mode === 'streak') { markSourceDirty(); draw(); } };
   $('streakType').addEventListener('change', e => { streak.type = e.target.value; applyStreakUI(); streakRedraw(); });
   [['streakAngle', 'angle', v => v + '°'], ['streakDensity', 'density', v => v], ['streakSoft', 'soft', v => v],
    ['streakGlow', 'glow', v => v], ['streakContrast', 'contrast', v => v]].forEach(([id, prop, fmt]) => {
@@ -1716,8 +1789,7 @@
   }
 
   function renderAscii(tctx, W, H) {
-    tctx.fillStyle = ascii.bg;
-    tctx.fillRect(0, 0, W, H);
+    tctx.clearRect(0, 0, W, H); // transparent: composited over the base
     if (!lum) return;
     const { cw, ch, cols, rows } = asciiGrid(W, H);
     const isSeq = ascii.charset === 'sequence';
@@ -1783,7 +1855,7 @@
   }
 
   /* ascii controls */
-  const asciiRedraw = () => { asciiDirty = true; if (mode === 'ascii') draw(); persistLastAscii(); };
+  const asciiRedraw = () => { asciiDirty = true; if (fx.ascii.on) draw(); persistLastAscii(); };
   function syncCustomInput() {
     const cs = ascii.charset;
     $('asciiCustom').style.display = (cs === 'custom' || cs === 'sequence') ? 'block' : 'none';
@@ -1848,7 +1920,7 @@
     clampPan();
     hatchDirty = true;
     asciiDirty = true;
-    if (mode !== 'gradient') draw();
+    draw();
   }
   $('hatchZoom').addEventListener('input', e => setZoom(parseFloat(e.target.value)));
   $('asciiZoom').addEventListener('input', e => setZoom(parseFloat(e.target.value)));
@@ -1862,9 +1934,7 @@
     $('focalY').value = Math.round(streak.fy * 100);
   }
   canvas.addEventListener('pointerdown', e => {
-    if (mode === 'gradient') return;
-    if (mode === 'streak') {
-      if (streak.type !== 'radial') return;
+    if (mode === 'streak' && streak.type === 'radial') {
       e.preventDefault();
       focalDrag = true;
       canvas.setPointerCapture(e.pointerId);
@@ -1872,6 +1942,7 @@
       draw();
       return;
     }
+    if (!anyFx() || !pixels) return; // photo pan only makes sense with a photo under an effect
     if (!ensureLum()) return;
     e.preventDefault();
     panning = { x: e.clientX, y: e.clientY, ox: hatch.offX, oy: hatch.offY };
@@ -1892,7 +1963,7 @@
     asciiDirty = true;
     if (!panRaf) { // throttle regeneration to one per frame
       panRaf = true;
-      requestAnimationFrame(() => { panRaf = false; if (mode !== 'gradient') draw(); });
+      requestAnimationFrame(() => { panRaf = false; draw(); });
     }
   });
   ['pointerup', 'pointercancel'].forEach(ev => canvas.addEventListener(ev, () => {
@@ -1986,7 +2057,7 @@
     applyHatchUI();
     persistLastHatch();
     hatchDirty = true;
-    if (mode === 'hatch') draw();
+    if (fx.hatch.on) draw();
     toast(`프리셋 "${name}" 적용됨`);
   });
 
@@ -2101,45 +2172,46 @@
   const off = document.createElement('canvas');
   const offCtx = off.getContext('2d');
 
+  // base color layer: rendered at low resolution into `scratch`, then upscaled into tctx
+  function renderBase(tctx, W, H, t, scratch, lowW) {
+    const sw = Math.min(lowW, W), sh = Math.max(2, Math.round(sw * H / Math.max(W, 1)));
+    if (scratch.width !== sw || scratch.height !== sh) { scratch.width = sw; scratch.height = sh; }
+    const sctx = scratch.getContext('2d');
+    tctx.imageSmoothingEnabled = true;
+    tctx.imageSmoothingQuality = 'high';
+    if (mode === 'streak') {
+      renderStreak(sctx, sw, sh, t);
+      tctx.filter = `blur(${streakBlurPx(W).toFixed(1)}px)`;
+      tctx.drawImage(scratch, 0, 0, W, H);
+      tctx.filter = 'none';
+    } else {
+      renderMesh(sctx, sw, sh, t);
+      tctx.drawImage(scratch, 0, 0, W, H);
+    }
+  }
+  // effect layers composited with their blend mode / opacity (hatch below ascii)
+  function compositeFx(tctx, W, H) {
+    for (const key of ['hatch', 'ascii']) {
+      if (!fx[key].on) continue;
+      const src = key === 'hatch' ? (ensureHatch(), hatchCanvas) : (ensureAscii(), asciiCanvas);
+      if (!src) continue;
+      tctx.save();
+      tctx.globalCompositeOperation = fx[key].blend;
+      tctx.globalAlpha = fx[key].opacity;
+      tctx.imageSmoothingEnabled = true;
+      tctx.imageSmoothingQuality = 'high';
+      tctx.drawImage(src, 0, 0, W, H);
+      tctx.restore();
+    }
+  }
+
   function draw() {
     if (!colors) return;
     const stage = $('stage');
     const dw = stage.clientWidth, dh = stage.clientHeight;
     if (canvas.width !== dw || canvas.height !== dh) { canvas.width = dw; canvas.height = dh; }
-    if (mode === 'hatch') {
-      ensureHatch();
-      if (!hatchCanvas) return;
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(hatchCanvas, 0, 0, dw, dh);
-      return;
-    }
-    if (mode === 'ascii') {
-      ensureAscii();
-      if (!asciiCanvas) return;
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(asciiCanvas, 0, 0, dw, dh);
-      return;
-    }
-    if (mode === 'streak') {
-      const sw = 360, sh = Math.max(2, Math.round(360 * dh / Math.max(dw, 1)));
-      if (off.width !== sw || off.height !== sh) { off.width = sw; off.height = sh; }
-      renderStreak(offCtx, sw, sh, time);
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.filter = `blur(${streakBlurPx(dw).toFixed(1)}px)`;
-      ctx.drawImage(off, 0, 0, dw, dh);
-      ctx.filter = 'none';
-      applyNoise(ctx, dw, dh);
-      return;
-    }
-    const lw = 240, lh = Math.max(2, Math.round(240 * dh / Math.max(dw, 1)));
-    if (off.width !== lw || off.height !== lh) { off.width = lw; off.height = lh; }
-    renderMesh(offCtx, lw, lh, time);
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(off, 0, 0, dw, dh);
+    renderBase(ctx, dw, dh, time, off, mode === 'streak' ? 360 : 240);
+    compositeFx(ctx, dw, dh);
     applyNoise(ctx, dw, dh);
   }
 
@@ -2148,7 +2220,7 @@
     if (lastTs == null) lastTs = ts || 0;
     const dt = ((ts || 0) - lastTs) / 1000;
     lastTs = ts || 0;
-    if (animating && (mode === 'gradient' || mode === 'streak')) { time += dt * speed * TIME_SCALE; draw(); updateHandles(); }
+    if (animating) { time += dt * speed * TIME_SCALE; draw(); updateHandles(); }
   }
 
   window.addEventListener('resize', updateStageSize);
@@ -2212,42 +2284,15 @@
   function renderFrame(target, W, H, t) {
     if (target.width !== W || target.height !== H) { target.width = W; target.height = H; }
     const tctx = target.getContext('2d');
-    if (mode === 'hatch' || mode === 'ascii') {
-      const src = mode === 'hatch' ? (ensureHatch(), hatchCanvas) : (ensureAscii(), asciiCanvas);
-      if (src) {
-        tctx.imageSmoothingEnabled = true;
-        tctx.imageSmoothingQuality = 'high';
-        tctx.drawImage(src, 0, 0, W, H);
-      }
-      return target;
-    }
-    if (mode === 'streak') {
-      const sw = Math.min(1280, W), sh = Math.max(2, Math.round(sw * H / W));
-      const lo = document.createElement('canvas');
-      lo.width = sw; lo.height = sh;
-      renderStreak(lo.getContext('2d'), sw, sh, t);
-      tctx.imageSmoothingEnabled = true;
-      tctx.imageSmoothingQuality = 'high';
-      tctx.filter = `blur(${streakBlurPx(W).toFixed(1)}px)`;
-      tctx.drawImage(lo, 0, 0, W, H);
-      tctx.filter = 'none';
-      applyNoise(tctx, W, H);
-      return target;
-    }
-    const lw = Math.min(320, W);
-    const lh = Math.max(2, Math.round(lw * H / W));
-    const lo = document.createElement('canvas');
-    lo.width = lw; lo.height = lh;
-    renderMesh(lo.getContext('2d'), lw, lh, t);
-    tctx.imageSmoothingEnabled = true;
-    tctx.imageSmoothingQuality = 'high';
-    tctx.drawImage(lo, 0, 0, W, H);
+    renderBase(tctx, W, H, t, document.createElement('canvas'), mode === 'streak' ? 1280 : 320);
+    compositeFx(tctx, W, H);
     applyNoise(tctx, W, H);
     return target;
   }
 
+  const filePrefix = () => (mode === 'streak' ? 'streak' : 'gradient') + (fx.hatch.on ? '+hatch' : '') + (fx.ascii.on ? '+ascii' : '');
   function downloadBlob(blob, name) {
-    recordHistory(name.replace(/-.*$/, ''));
+    recordHistory(name.replace(/-\d.*$/, ''));
     const a = document.createElement('a');
     a.download = name;
     a.href = URL.createObjectURL(blob);
@@ -2270,8 +2315,7 @@
     const c = renderFrame(document.createElement('canvas'), artW, artH, time);
     c.toBlob(blob => {
       if (!blob || blob.type !== type) { toast(ext.toUpperCase() + ' 저장을 지원하지 않는 브라우저예요'); return; }
-      const prefix = { gradient: 'gradient', hatch: 'hatching', ascii: 'ascii', streak: 'streak' }[mode] || 'bg';
-      downloadBlob(blob, `${prefix}-${artW}x${artH}.${ext}`);
+      downloadBlob(blob, `${filePrefix()}-${artW}x${artH}.${ext}`);
       toast(`${ext.toUpperCase()} 다운로드 시작 (${artW}×${artH})`);
     }, type, 0.95);
   }
@@ -2281,7 +2325,7 @@
   /* ---------- SVG export (hatch mode) ---------- */
   $('downloadSvg').addEventListener('click', () => {
     ensureHatch();
-    if (!hatchGeom) { toast('먼저 사진을 업로드하거나 색상을 지정해주세요'); return; }
+    if (!hatchGeom) { toast('크로스해칭 레이어를 먼저 켜주세요'); return; }
     const blob = new Blob([buildSvg(hatchGeom)], { type: 'image/svg+xml' });
     downloadBlob(blob, `hatching-${artW}x${artH}.svg`);
     toast(`SVG 다운로드 시작 (${artW}×${artH}, 선 ${hatchGeom.strokes.length}개)`);
@@ -2305,7 +2349,7 @@
         gif.addFrame(c, { copy: true, delay: Math.round(1000 / fps) });
       }
       gif.on('finished', blob => {
-        downloadBlob(blob, `${mode === 'streak' ? 'streak' : 'gradient'}-${W}x${H}-${dur}s.gif`);
+        downloadBlob(blob, `${filePrefix()}-${W}x${H}-${dur}s.gif`);
         toast(`GIF 다운로드 시작 (${W}×${H}, ${dur}초)`);
         done();
       });
@@ -2334,7 +2378,7 @@
     const chunks = [];
     rec.ondataavailable = e => e.data.size && chunks.push(e.data);
     rec.onstop = () => {
-      downloadBlob(new Blob(chunks, { type: mime }), `${mode === 'streak' ? 'streak' : 'gradient'}-${artW}x${artH}-${dur}s.${ext}`);
+      downloadBlob(new Blob(chunks, { type: mime }), `${filePrefix()}-${artW}x${artH}-${dur}s.${ext}`);
       toast(`${ext.toUpperCase()} 다운로드 시작 (${artW}×${artH}, ${dur}초)` + (ext === 'webm' ? ' — MP4 미지원 브라우저라 WebM으로 저장했어요' : ''));
       done();
     };
@@ -2350,7 +2394,8 @@
 
   /* ---------- history: last 5 exported results ---------- */
   const HISTORY_MAX = 5;
-  const MODE_LABEL = { gradient: '그라데이션', hatch: '해칭', ascii: '아스키', streak: '모션 블러' };
+  const MODE_LABEL = { gradient: '그라데이션', streak: '모션 블러' };
+  const stateLabel = st => (MODE_LABEL[st.mode] || st.mode) + (st.fx?.hatch?.on ? ' + 해칭' : '') + (st.fx?.ascii?.on ? ' + 아스키' : '');
   function setArtboard(w, h) {
     artW = w; artH = h;
     $('artWInput').value = w; $('artHInput').value = h;
@@ -2361,6 +2406,7 @@
   function snapshotState() {
     return {
       mode, artW, artH, time,
+      fx: JSON.parse(JSON.stringify(fx)),
       photo: pixels ? photoData : null,
       grad: getGradState(),
       hatch: { ...hatch }, ascii: { ...ascii }, streak: { ...streak },
@@ -2398,9 +2444,12 @@
       Object.assign(hatch, st.hatch); normalizeHatch(); clampPan(); applyHatchUI(); persistLastHatch();
       Object.assign(ascii, st.ascii); applyAsciiUI(); persistLastAscii();
       Object.assign(streak, st.streak); buildStreakPhases(); persistStreak();
+      if (st.fx) { for (const key of Object.keys(fx)) if (st.fx[key]) Object.assign(fx[key], st.fx[key]); }
+      else { fx.hatch.on = st.mode === 'hatch'; fx.ascii.on = st.mode === 'ascii'; } // snapshots from before layering
+      applyFxUI(); persistFx();
       time = st.time || 0;
       hatchDirty = true; asciiDirty = true;
-      setMode(st.mode);
+      setMode(MODE_LABEL[st.mode] ? st.mode : 'gradient');
       toast('히스토리에서 복원했어요');
     };
     if (st.photo) {
@@ -2426,8 +2475,8 @@
       b.className = 'hist-item'; b.type = 'button';
       const d = new Date(h.ts);
       const when = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-      b.title = `${MODE_LABEL[h.state.mode] || h.state.mode} · ${h.state.artW}×${h.state.artH} · ${h.kind.toUpperCase()} · ${when}\n클릭하면 이 설정으로 되돌아가요`;
-      b.innerHTML = `<img src="${h.thumb}" alt=""><span class="tag">${MODE_LABEL[h.state.mode] || ''}</span><button class="rm" type="button" title="삭제">×</button>`;
+      b.title = `${stateLabel(h.state)} · ${h.state.artW}×${h.state.artH} · ${h.kind.toUpperCase()} · ${when}\n클릭하면 이 설정으로 되돌아가요`;
+      b.innerHTML = `<img src="${h.thumb}" alt=""><span class="tag">${stateLabel(h.state)}</span><button class="rm" type="button" title="삭제">×</button>`;
       b.addEventListener('click', e => {
         if (e.target.classList.contains('rm')) {
           e.stopPropagation();
