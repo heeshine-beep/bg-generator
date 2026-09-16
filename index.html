@@ -1,0 +1,2000 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>그리팅 제품 가이드 배경 생성기</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  /* Coinbase design tokens — light (canvas) */
+  :root {
+    --bg: #ffffff;            /* canvas */
+    --panel: #f7f7f7;         /* surface-soft */
+    --surface: #eef0f3;       /* surface-strong */
+    --border: #dee1e6;        /* hairline */
+    --text: #0a0b0d;          /* ink */
+    --body-c: #5b616e;        /* body */
+    --muted: #7c828a;         /* muted */
+    --accent: #0052ff;        /* Coinbase Blue */
+    --accent-active: #003ecc;
+    --on-accent: #ffffff;
+    --shadow: 0 4px 12px rgba(0,0,0,.04);
+  }
+  /* dark (surface-dark) */
+  html[data-theme="dark"] {
+    --bg: #0a0b0d;            /* surface-dark */
+    --panel: #16181c;         /* surface-dark-elevated */
+    --surface: #23262c;
+    --border: #2e3138;
+    --text: #ffffff;          /* on-dark */
+    --body-c: #a8acb3;        /* on-dark-soft */
+    --muted: #7c828a;
+    --shadow: 0 12px 40px rgba(0,0,0,.5);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+    letter-spacing: -0.02em; /* 한/영 공통 자간 -2% */
+    background: var(--bg); color: var(--text); min-height: 100vh;
+    transition: background .2s, color .2s;
+  }
+  button, input, select, textarea { font-family: inherit; letter-spacing: inherit; }
+  header {
+    height: 64px; padding: 0 28px; display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid var(--border); background: var(--bg);
+  }
+  header .logo {
+    width: 28px; height: 28px; flex: none; display: block;
+  }
+  footer {
+    height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    border-top: 1px solid var(--border); background: var(--bg);
+    color: var(--muted); font-size: 12px;
+  }
+  footer img { width: 18px; height: 18px; display: block; }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header .tagline { color: var(--body-c); font-size: 13px; }
+  #themeToggle {
+    margin-left: auto; height: 36px; padding: 0 16px; border-radius: 8px;
+    border: none; background: var(--surface); color: var(--text);
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s;
+  }
+  #themeToggle:hover { background: var(--border); }
+
+  .layout { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 65px); }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+
+  aside { background: var(--panel); border-right: 1px solid var(--border); padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+  .section-title { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
+
+  #dropzone {
+    border: 1.5px dashed var(--border); border-radius: 8px; padding: 26px 16px; background: var(--bg);
+    text-align: center; cursor: pointer; transition: all .2s; color: var(--body-c); font-size: 13px; line-height: 1.6;
+  }
+  #dropzone:hover, #dropzone.drag { border-color: var(--accent); color: var(--text); background: rgba(0,82,255,.05); }
+  #dropzone strong { color: var(--text); font-size: 14px; display: block; margin-bottom: 4px; }
+  #fileInput { display: none; }
+
+  #thumbWrap { display: none; position: relative; }
+  #thumb { width: 100%; border-radius: 8px; display: block; max-height: 180px; object-fit: cover; }
+  #reupload {
+    position: absolute; right: 8px; bottom: 8px; font-size: 12px; padding: 5px 10px;
+    background: rgba(0,0,0,.6); color: #fff; border: none; border-radius: 6px; cursor: pointer; backdrop-filter: blur(4px);
+  }
+
+  /* color rows: chip + hex + size slider in one comfortable row */
+  .swatches { display: flex; flex-direction: column; gap: 8px; }
+  .color-row {
+    display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--bg); transition: border-color .15s;
+  }
+  .color-row:hover { border-color: var(--accent); }
+  .color-row .num {
+    width: 16px; font-size: 11px; font-weight: 700; color: var(--muted); text-align: center; flex: none;
+  }
+  .color-row .hex {
+    font-family: inherit; font-size: 11px; color: var(--body-c); width: 58px; flex: none;
+    background: transparent; border: 1px solid transparent; border-radius: 4px; padding: 3px 4px; outline: none;
+    transition: .15s;
+  }
+  .color-row .hex:hover { border-color: var(--border); }
+  .color-row .hex:focus { border-color: var(--accent); color: var(--text); background: var(--bg); }
+  code, pre { font-family: inherit; }
+  .color-row input[type="range"] { flex: 1; min-width: 0; }
+  .color-row .val { width: 34px; text-align: right; font-size: 11px; color: var(--muted); flex: none; font-variant-numeric: tabular-nums; }
+  .val { width: 38px; text-align: right; font-size: 12px; color: var(--muted); flex: none; font-variant-numeric: tabular-nums; }
+  .mode-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .mode-group button {
+    height: 34px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--body-c); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: .15s;
+  }
+  .mode-group button:hover { border-color: var(--accent); color: var(--accent); }
+  .mode-group button.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .ink-row input[type="color"] {
+    width: 34px; height: 28px; flex: none; border: 1px solid var(--border); border-radius: 6px;
+    cursor: pointer; background: none; padding: 2px;
+  }
+  .count-group { display: flex; gap: 6px; }
+  .count-group button {
+    width: 32px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--body-c); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: .15s;
+  }
+  .count-group button:hover { border-color: var(--accent); color: var(--accent); }
+  .count-group button.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .color-row input[type="color"] {
+    width: 34px; height: 34px; flex: none; border: 1px solid var(--border); border-radius: 6px;
+    cursor: pointer; background: none; padding: 0;
+  }
+  .color-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+  .color-row input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
+
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  label.small { font-size: 13px; color: var(--text); }
+  input[type="range"] { flex: 1; accent-color: var(--accent); }
+
+  .toggle { position: relative; width: 40px; height: 22px; flex: none; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle .track {
+    position: absolute; inset: 0; background: var(--border); border-radius: 999px; cursor: pointer; transition: .2s;
+  }
+  .toggle .track::after {
+    content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px;
+    background: #fff; border-radius: 50%; transition: .2s;
+  }
+  .toggle input:checked + .track { background: var(--accent); }
+  .toggle input:checked + .track::after { transform: translateX(18px); }
+
+  .btns { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
+  button.action {
+    height: 44px; padding: 12px 20px; border-radius: 8px; border: none; background: var(--surface);
+    color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; transition: .15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  button.action:hover { background: var(--border); }
+  button.action.primary { background: var(--accent); color: var(--on-accent); }
+  button.action.primary:hover { background: var(--accent-active); }
+  button.action:disabled { cursor: not-allowed; opacity: 1; }
+  button.action.primary:disabled { background: #a8b8cc; color: #fff; }
+  button.action:disabled:not(.primary) { color: var(--muted); background: var(--surface); }
+  .shuffle-btn { width: 100%; margin-top: 10px; height: 36px; font-size: 13px; font-weight: 600; border-radius: 6px;
+    border: 1px solid var(--border); background: transparent; color: var(--body-c); cursor: pointer; transition: .15s; }
+  .shuffle-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  main { position: relative; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; padding: 32px; overflow: hidden; }
+  #stage {
+    border-radius: 12px; overflow: hidden;
+    position: relative; box-shadow: var(--shadow); border: 1px solid var(--border); background: var(--surface);
+  }
+  #sizeBadge { color: var(--muted); font-size: 12px; font-weight: 600; }
+
+  aside { overflow-y: auto; max-height: calc(100vh - 65px); }
+  select, input[type="number"], input[type="text"] {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 12px; font-size: 13px; outline: none; transition: border-color .15s;
+  }
+  select { width: 100%; cursor: pointer; }
+  select:focus, input[type="number"]:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  input[type="number"] { width: 74px; text-align: center; -moz-appearance: textfield; }
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .size-inputs { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--muted); font-size: 13px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  #meshCanvas { width: 100%; height: 100%; display: block; }
+  #placeholder {
+    position: absolute; inset: 0; display: flex; flex-direction: column; gap: 8px;
+    align-items: center; justify-content: center; color: var(--muted); font-size: 14px;
+  }
+  #placeholder .big { font-size: 40px; }
+
+  .handle {
+    position: absolute; width: 26px; height: 26px; border-radius: 50%;
+    border: 3px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,.4), inset 0 0 0 1px rgba(0,0,0,.15);
+    transform: translate(-50%, -50%); cursor: grab; touch-action: none; z-index: 5;
+    transition: width .15s, height .15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .handle::after {
+    content: attr(data-n); font-size: 10px; font-weight: 700; color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,.6);
+  }
+  .handle:hover, .handle.hl { width: 34px; height: 34px; z-index: 6; }
+  .handle.dragging { cursor: grabbing; width: 34px; height: 34px; }
+  #stage.hide-handles .handle { display: none; }
+  #stage.hatch-mode #meshCanvas { cursor: grab; touch-action: none; }
+  #stage.hatch-mode #meshCanvas:active { cursor: grabbing; }
+
+  /* brand preset chips */
+  .chips { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+  .chip {
+    display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg); cursor: pointer; text-align: left; transition: .15s;
+  }
+  .chip:hover { border-color: var(--accent); }
+  .chip.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .chip .stripes { display: flex; height: 22px; border-radius: 5px; overflow: hidden; }
+  .chip .stripes span { flex: 1; }
+  .chip .name { font-size: 11px; font-weight: 600; color: var(--body-c); }
+  .chip.ink .stripes { position: relative; }
+  .chip.ink .stripes .mark { position: absolute; inset: 0; background: repeating-linear-gradient(45deg, var(--ck) 0 1.5px, transparent 1.5px 6px); }
+  /* manual color mode banner */
+  #manualWrap {
+    display: none; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg); font-size: 13px; color: var(--body-c);
+  }
+  #manualWrap strong { color: var(--text); font-size: 13px; }
+  #manualWrap button {
+    margin-left: auto; font-size: 12px; padding: 5px 10px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border); background: transparent; color: var(--body-c); white-space: nowrap;
+  }
+  #manualWrap button:hover { color: var(--accent); border-color: var(--accent); }
+  /* hatch layer editor */
+  .layer-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+  .layer-row {
+    display: grid; grid-template-columns: 20px 1fr 1fr 30px 20px; align-items: center; gap: 8px;
+    padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg);
+  }
+  .layer-row.off { opacity: .45; }
+  .layer-row input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer; margin: 0; }
+  .layer-row .field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .layer-row .field label { font-size: 10px; color: var(--muted); display: flex; justify-content: space-between; }
+  .layer-row .field input[type="range"] { width: 100%; margin: 0; }
+  .layer-row input[type="color"] {
+    width: 30px; height: 26px; border: 1px solid var(--border); border-radius: 6px; padding: 2px; background: none; cursor: pointer;
+  }
+  .layer-row .rm {
+    width: 20px; height: 20px; border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1;
+  }
+  .layer-row .rm:hover { color: #e5484d; }
+  .sub-title { font-size: 11px; color: var(--muted); margin: 0 0 8px; }
+
+  #toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--text); color: var(--bg);
+    padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; transition: transform .25s; z-index: 99;
+    box-shadow: var(--shadow);
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <img class="logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAsDUlEQVR42u2deZxdVZXvv2vvc+dbc+aBBAIhQIJhlknmZghig1ZkEgFFQVqw9elDbS2ibb/G1tanokAzKdJPEmQeRIYQJukwB0IYMpGQkLmmW3c8Z6/3x7k3A1NuJXWLKsn5fO4nSaXuvefstfZav/Vbwxb6/pLW1plmVmsrTJfgppu+MvLss69Zdcv99+3/wnOvJ+7Nn/qtOvfsKdHC2mBp7HjbUbczniqK8LG6VHFRSK9+kE8tSTB78mi+sKLLZXe9xNyx69mzXkr3zGg+4Z9fFREFoK3NADBjhutTYfXVB7WpGoAZYh2E9/jtkw8+5rXj/vWffLtopwXdZ4zFLw3tlCZKAmrAc2CUj+2lAB4UDYgPjRkoxLqI2SwT8w8XHMWnR4xO395w4cjbb5DDl5UAZs60bfPn64w+UoTtUoBWsHuCQhszCG/oDqj763d/c/Zj6eOPyeaCz2Ziu9ITtUR8CBQ8UMEJqqiYvtTBQaoFDgMogm8l3BCK5g3SnO/C1lt2b7+n47iFd81+/refvnRmyxnLlfIbUKhYiP5WAKlosPHA+Vxy+xXHrHt5v9Pmd8mRHS0H7dnlpfBLYB1qcKoYEVT04y7wra5pKE+jqr5nHAFKgJeIr6HFda6oa3xx9pE3zb3p50/9519LOGa2ttrps2YF/W8BjOWBaPz0F/M9a9+efuGXnpx6+hnr7EF0EkdLOKuo4Gy4y3dc2+EkEEQdOBQr6SJHzfsre0fnffnNb7066+aJN3ehSFmSWnMFaGtrM60zZnh7Qeykvb756yVHTZtUGH3gQZ0u7XxFLU4EMTt2ei2UQVUwQSGCrc8t8xPDl62bcd9/XveFu2//AQi0/dD0FiT2SkqzOcI7ijn+qsMm7/2Ud9Sd3z3kh80rhg+pN1l8GzhPEHYIvvaKIAolI1gLU95+gZ0K7Vf9dP/HvjX6qz/Jqn7fiFSvBFLtrp8xA4jMcFf+6JKzr1755a9nRux54AZjkZILxIjdIfh+B48Khp4YblQ2YxvlscUrdp72hbXn8BQzWy3Tq8MF0htNcVMenDL9+NKtj4z4h4mlknWe70TF7JD8R3gZDShY6yd0ubfzO/d2fH/Xk4/4zKVjX26dPtPMmjU92C4FaGtrM5cD35o4ceL6IDLezBlx1QNjDx/XFSWIBWqd7JD9wIgeFF/EpRWp5+W3OxZ97YRVNzzxahkc6nZYADUg7txHH5zy6Av7v7Q63+g8DUwksKI7ZD/ALoca/CBqvOFdi++dk3n63FH/eWYWJScfwhV8aIw2Tm+Mrjn1KyMX/dX+sLvUSNxHdgh/wDoDxBkvknNudf0u076Y3+21X06+7HQR0bYj2rxeWYC2tiM8Zjzq/jBfDj3uj4/ffVfysIa8+BjsDpQ/GKIEET9r8Y4ddv2Cu88zJ4k5b6k6lfezBPb9lGLO4yvcHG3TMbFbf/7EqGP3DUqmZNmB9AcLIgDEKm5D96T6e2at9JbOPfPxR3lH35rze/ehLkBB2traRJ3fcMcJfzqrY/gJn/MynrO4yA7hDy4tsE5tJpKIz40f+43mEU+MmzPjKJ/3cQXmXbZfRt3zjr3kpLY//36Xz/5xg035RtUoO+jcQecIRDBFgsiwVDD861/9ybe/cdO+zPmx31ZJK78HA8xstbTOdLteP+WsMS/fcdOjYyf4LT3Oc2aH8Ac3InCqnpHRG371zvpDLz30wuf1rRkIzAhz9pukO32mQ0S//fAe+62vG++nCxj9O+J4RMAIWAFrwj+NhD//+yaKRMTHb288fWTj3Ee+PmOGuNa9Zm586o0+QRX74JNrh/3wlrdOezslnuc7N5hNf0XgABpAMYCSg8CFaRUpK0LUQMSAMeAUVLchpTawFQBwtoNhOmTIgi+qPvu/xRxQUg2jAg+gdaZaY63/j7957Wsv77zfTpEsgQGrg1TwVqDgQ64IAUosqYyog1EpoT4BEQtFX2jPBKzMwOqsoZiDqBGSsVAhKooyqK2eQmDAqJF40bnViU827/SXed9G9d+mh9Y/EEBQZeHvLhp6wprvPr4uPnaiKalTGVzOXwh3dK4IPT6MblL230359Dhh0mgYm4aRMcEL06qAoeSUlXllcYfw/JIidy/xeOUtZUPeoz4WKkrgBq8C6GaKgDj1rdGmlbfpiFG37Df3uzNfamtrM94RbbPtHJHg8ktnfMeNrpuoRQmQ9+UHBuxlDQQBrO9RJoyC8w5SWifBrinznhVxGuq8ABERxiWFcUk4alSMbx2qPLfG5w8vFLnlJcu6bktTcpNrGJQuoLzNjRqsg9zQE7J7vr1h6v9wy8uy1yzxeBQiBn2u4XNT2m0TBsdg8v2egUweIgnleycplxwgDI2E9++C8i4ogz1hEy6o7BCtmHoFI8J+wyLsdzxcdKDPjx7JM2telJQ1RCMO35lBaQVsiGvEqkrei0SymfSPrt3zlCdpvXuRXbr0Rs007vSrV3qmfrbLS1kbqCCDAxt7Bjb0wJTxyo1nKuftDikRAhdK22z2Et7Le8tmYLESETgF52BY0vDZPQ27teR5ZKEjU/SIRwQ3iCyB0c2eWQACiiZidOi6xmkr/rbylvMXPWFH7BUZff2qvW7qspNiDstgkX5EoD3rOH5f5fbThT3SQhAYxMhGgW9P9ODK7mLvER5H7eZ4aFGRVd0eiYgMGnegsumFho7PirhMdry0162ui510/5/Nb0dOmmbiiWjeRAJPB0eG3zOwNuuYdqDj1tOg2UDgBGv6rsi8whn4gbDfiCj3nhNj15YCPYXw54MJHFcUGxHEqSXuZN74vT756rzpu5hLbkjubdZPVWxZZQYB4OvMKoftpfzxFEvCGZxKzYTiGfADmNBk+fOZQnOyQD7YEksMdOGbMrdRMVwuMKzL7+Ii01PDzdLYnGN9yYgqZqDne0SgWIKhzY7rP2NJqxBQe2FUlGDSkCh/OK2A+oVBxRHoFi5RcR4uWfLNHouk1S4/7lu/3pDYB6siA61LRzYDZ8aEgmjPOX75OeGYkULgQovQL4BKwHfChCFROrNZHl4SJR0bXKCwYhcE1PeGSDT1iXUmtmSlasyG8dBAYPHKPL0olHzIFqG7AN15WN0Bnz5QOWd3CPxQKfrV/UgIDC87MspuTRny/uBNkos4TqnrSXqMGC0SKB/l7q+EYTkf8sXQZEWTMDzuGJES6iKC9WDvXeC7B4FxoGZTO0xVZlDBbdGFHLIdphf+QyQMEZtScb5xYI6vPeAYmrL4g44tVENR+cuG7BRpuaKkQdF+JMGfSMhU5YqQDZTxw2CfneHk8bDHSBidEobGIC5bMhuqvcviOacY+64PqfRSlYmgavVAy2/t7MlzyNUllmfriJrB194uCpncEjzyHmr7f/9bEwK6Hh8mj1Mu2F/5zO7CmLhshlcVVDYKSTU0+70SvoKxQjGf58nX1vDkqnrW+2lGp3IcM67IPrs0Ilicq04JRML8QGM6ytlTs3x/djD4rICCWkjknHqBod+JX89ARxaGNSttR8MFU5Q6szl9u4nJqyy60Hsv5RSMUR6b9xbfecDjhQ2NlIihYhGNkYx4HLdzJ1eckmRiS7xXSqBqOHe/GFc/k6MzSGPZzAq8i3nUza3HgLgcagwxXSWmvy2/lZC+PXSy4y9fVr75CajDEASbdvhGILgdyKQi/HueXsqn/zvKs9kxJOvqaaqL0ZKC5rookViCOxY1cuz1yktrSxtrAqrBLM7BqMY4p0/x6cw4ol5IRBmAIASw+RLkSqGlc0H4f7b8fB8ljyACzof6IdK/m98KrM/BBZ9y/OXzMLlO8ANBy+i/r9bEqSIG3lrVwaX3R/HTo2iKKLgyGCQM3wQYljas7Erw9TtKFALHpg79KpRALf98RIL9x5dY1eXo7HF0+0AcWhqVCUMduw/3Gd3sE005skB7VunoCZXDykfDKopCIQJ7LFG8/vT57T3KJcfAL49S1IfAGLwaqKDTMO//h6c7WOyPZ0hcCZy8L3YoBdCSgseXxrn1tYCz9ooQBFvnF8LPUkakYzx0vuOe1wI2FIXJI4ThTdAQEVJGEIS8g+4ANnQrC98J+MvbwguLHW+sMaCGuoRstFr9yRIWLf2jANZAexZO+yT84ijF+aGtrIX2axljBIFjzltJYhHBbQWgBQ5invDbvynT93R4xlBNYCwI6pSGiOGsKeb9bwahwcLwSGgZDhzqcebeSlcRHl2i3PBsgb+86aFY6mLSrwUoov2A/4yBbB4m7az85iRFXGj3agY+ypLL5AIWF1uqUjKnUBcTnllmeWBRsDHer86fhtnBICi/XPhe3Yx/DzmI8OdBAC4Q6qOWU3b3uP2sGHedE3DwTgXW97hehaR9Ip+aRxwOiCq/nQbDjBBo/0QdEc8QsaDVQm8Jl+N3TzvA9UoIshm4s++qP6i8TFmwtlyAqlpRFuG4XWI8dF6Un5xYIggKFPx+pLhrHu7llNMPVD41HIJAsDVWb5FQ6ZIxy6S6dkqBVMUbBA7q48LsRR5Pvl0CU9t6QGGTsgQOrBq+e2iMe84JaEz6YdrZ1L4w1dRSECUfmhuVbx9MeaJZL62HQuCUwCm+C//uqtjRFWZ72iRLEARVRxciUAwsv5mrCK7fegZsuWjDD+BT45Pcf27AyAafbBE8GaQKYCRM4nx6b2VSWnBOemVWAwdiwFrBWsGz4d+NkY0+9cMWFITP7ZNk58YcOb+6Bw0cNMTg3vkeL64OMKasTP2Eyitp58lDYtx5dkBTvEjep6YVujVTAHXgxeCcKTYEQr2kb62FXDbHIy8u46cPrucHDxS57rH1LHi7EzFl4bgPoWsDaE7HOW9qkZ6iVp05tAZ6Ch6/fVa3pPH6kSX1A5g8NMqfPpdDghyO2lH1Xq12f64Ie4722W+Eh2i1u1/LDJ7PbU+v4iePeSzoaqGkHk48rKZIRpXjdunmX/8hyu7DEwRBmDsI6wZkSywAnLt/gqufzdIVpPBk6/IMHNTF4a75hu8dHjC+zob3JP2tBMJhE+r5wZEdXPZwjOaUqQkmMTVTAB8OHmeoExea817Qt9c/uIjWO9IsKI4kmUrRmA4XoCEdx0QS3PpmI0df57jhmW6sLWHte+NnIyH9OqY5RuseBXryripkrUDUwupOy9XPhXThR8Hh23Kd4z8fnuSwMd10F2qjhDVRgLD3TtllhFT9FYFTjBGefWMtlz46krqGJlJGw9h5sxcKQxOQcWm+fGeS8//Uw6ruAp4n+E63IHJDK2C44JMxGmP5qjN2gUI6Ltz8vLI661edI9gcvLoyeK28esvylYlGPC/GD46yGL84eDCAKkStskedbvY0WydU0CK/frJEwdYTRQk+ADj4LjSTLSmPP7zayJH/5bh/QTdeeYZJBbiZcki4x8g4p0ws0plXbBXjyVUh5sHyDZYbX9Jy9q934NWUwWvlVQGUvbEm1oTk0bG7xThiXI5MQfvcCtREAZxC1DOMKbdmSRULbgx0duZ5/h2IVUGJqoaK0JyAFZkEp/2/CN+5L0O+WMIattjtiuXigz0StlhuDatOiVMxw++fFTqLIejUrfy+EoLXYj7P3NdXc8vji7nukRU8/MJKVnQUsMYh22BNMBHO3cdRCrTPQ9Oa5QKsQLTaKpuykryTTbDOVzxbpdkoW4OYBzEvzs+eivL4kgy/PKXIQWOTuPAIA9TBfjslOX7nbu5aFKUxLlsN71QhEYHX1lhmvlrigqn2A5NEquGuR0vc9NhKfveMYV7XEEp+HaoGMdCc8mndM0vbMQla0tXXHlR+5+hJCXap62RVsalPK5BqFgYGGmbaenPFPCUq2uvIy5V5gaEpwwtr6jnxBssv5nRhCHP8fhB2A194kGApVR2SqkLcE655RsgF7n2tgIZFS5QKWS68eTVfvH8IL2bHEo8lqE8naaiLU5eKk3Mpfj23kaOv9Xm1F7UHlQqkoWnD/mMs2VLfgsGaKEDIAjrW5PyqQulKyDa2scSYdJFCsG3nIJQc1MUAm+CbD9Zxyu9zLF7bQzQi+AEctVuCw0dnyVSJqJ1CKgIvLjfc80bxfZNE5UZzvnvnOq5+dSRDGlMkbQj6KsDVuZDMGV4nvLI+zdm3FOnK+dVjCwUlyqFjS0hQ7NOxJjULA4sBvJGhKjJFCEM2L5pg2uQo+XywzTmDoFzoMTRt+cviej51reX3z2fxbIBnI3x5X0epVKp6DRWwYvjdXEugW4KwMHKBp+av4qoX07TUWwJf3xdnKOGaDE3CC+8k+I+ng43NqFuPCEKDv++QPFET0Jd0QM0sgFPDqpJXNZkWZsgMFx8SZ+qIHBuyYTy+rWGoH0BjArqCOBfc7vGlWRnWdef4/AF1HDImR6ZYvRVIx4SnllgeWeojmzGQYSrY56q5Sj7ajLit++aSQl3MMHOeZV0xwNoqXF5ZW5sam4lEo33awmFqIfzAh2hUOXq0bgFktmYFVKEhFee/z4iwe0uOtRkNS8W20eL5LpwB1JCMcv28Bo76L8fdL3cyLrKuVxx/SC0brpzrNrKOrhy5LFvdxV/frqcuwgeGre8NkWFpp8eb63Qj+7lVTgCoS8ZI22BjOduAVAADdBThWyfCEcNDBF6tNa8UW+4xNMYjF1jO3S9LRy4gCNjm0rGKLx6ahMWZFJ+fWc89K8eRjlYfjoWpYnjoTY+5q0Ir4JfffP/LGdblk726PzGgvtKeMeGKVXkfUQNx4w9cF+AZ2JBTLv4Hx08OCCtfequqFSUYloxy3alxbvhsgfpYgQ258PO3VfN9BwkPkskoxrO9TvJYA/mC4Td/K1sBIwR+nltf8/Bi0V4xPFou+0mUJ5nQCzyifdzBbfpS+O09cMp+8MvDQuHLNgqswuA5Zzn7E0keusBy/MQcazMBzm17jrxSlrUtGb7AQUNUuHO+x8vrfIzAi4szPLO2jlSV5n/jfQSQSinDh7rqiLLyn7liQDbw+rSWsk8UwEjY0zdyqPLLE8CUR7Rsz31WOoP9ACY2edxzdoSfTishFOnOU5Nq4q0JwbPQnTNcNTcsGbv9lQIZTfYqLrcGekpw4Fhlt3TY9bR1jBOqQEdXhh4/xCA6kBRABLJO+eEJMC4uBCp9RlZ4ZT4c5/HtQ2I8eH7AJ0bnWd+jG5tK++vygbp4aAVun7uYB5ZEiMcsrpeZnpIqJ00WIpv1J2zVZQDvrNuA7/t9SgdvtwIYA5kcHLirctbuYfaut23bSpg98x3l0q8ygaKK6qbAyg+E/UYneOhLHv/r8CzdBZ9cqf+sgWr4XT15y5l3jWFRbggxoVe0bMmHYc3wjxN0IyCsMkZi9sqwta0vdX67l04USqJceBAkMCEv3ivfGiY4TLnsKyz9Cl/GCGLKWKJcdesHkDQeVxwfZ+aZAaPrCqzr0X6zBFpW+nQyWq30tjD/mSIcuxuMS8jGdrFqNpkr5XhuWREbtX1aoLBdySARKJRglxHKyRPC1enN7g+zZ4Ir9PDMshzz29MEgTKkLsLwRIFhsTwtCSERjxCLRpFIFG8jArJ8ZnfLSbv6nHNnwJ3zDMmo6ZfuGmUbawXL6/PpvUICuRrc6BwYCy8vL/DSuiTpeO8AZ00VwAq0+3DcBKHZUlVL1eaLKFLitiff5j/+FmNBR5ROjQIGT0qkTEBKfOJRIR43JGKO5kSB4bEcOyWzjE4WSCRijGxpYLe4j7pUOcBmQF4iYT/guBGOE8eWlUGqWyeAO+Z1sSEYzRABvw+f0dvenWDFccD43vXxhsDH57LbVvPz/2nGSzUQT8AQU/ncCE4jZKinS8FlwWXC3eA0hmpDeG5iufrXs0I6LlV383wUl5EQ/U/bA+o9E5p/U42FhGIuw90LY8TjXrksfgBYACH0x01J4eChslHLq/H51sK1j7zNFXOH0dyURFwleyZbfL7HZkDJVr7jvcq2tTLxgXA5B6l4wKl7lmsUqjT/1sLjC7Ms6EiTTIWdRAODCCqXXqfrhOF1VKUAqqHPb+/o5udPRUnXl4XPe09uCFnyMA9WaefePMUabBEtDGzhG4FcQdlzLBwyFHDVNcZWluTOeVlyJl2T0nCzPRbAOUgnIeqFD1WN6QeYs6jIwlwzcRP26v+9X0YgFwif2UOISHUAUjVMNW9ob+fepXWkovSab6h5GOiAtAeRXr5v5bpOfInycbikHPs31TtO2aM8qr6qNHQY+983P8vybJyYpSaDqLafQtmGmNQzWz3S9u9n9xvoKcIhuwp71VH9HCID6hx3vepQL1Wz6MZs75u7faXUy/eNGDFkmxNFg/FyBj4/uTxQQqvZ/SGxtWTlGmavLJv/GnWnbLMCKCFB0dUj5EvVNf1XkhiH7hxjl1SG3CAZury9RNmYFuXonTdZhK0b1dD83z4f2ksJIoaazSHcdgtQbuDMdCtrO7UqbyDldq2WdJRvHm7JZEsbx7L/PV5WoKeoHDkRRkdD6reaRzUWisUi9y3w8WKx6odc9LcF8Ax05ZQn17gtUP6HLkq55+2igxNcdliWtd0lssVN0zPe/dr8NI/BpidOwYso0/eiF7F/uNdfXNTO/2xoJOVRdTNLv2OAsA3LMHeJoTdGygg4LP/npDqunR6w2zCfjK905JT2HseGjNLeA525cMZAtgRFv1yHx0c3Xq23oV++CLuPFA4bHZrHqqhfESDg1teUnCZqPwp/e94cKKSjwsOLHRtKSrNnq5yuVU5wOsOXpsY5Y2/HC6scb29wLO8R3s4ZVueF7gzkstCddXTkHO1F6PEt+SKICo3RgXu2nxHIBnDSXlBvlCAwW82TqIZWr6s7z4MLlVjMCynvGtq+7csFKMQisGSNcP+CImftbXG9SAhVBjkkjeHQUcCo968DLzphQ9GwpqCsK4IGwgtvZGibnSQRMQOSCQwcpKNw4i5bsnpbQ/8W4cnX25nfOYSG1Jb0+IBzARUl8Ixw1VxDScNBAL2RR2UQUuA2G7UWhGDRubA2MIIwIm7Yu8Fy9FDHft5a1q3tRGXzg1AGFvr3A2hqhMktYYu8VNshTcCtr8dxJtIvj7bdzaFOwzKpp9+yzJpf4szJsV6lhSsuwb5PQjFwGhaElI88m7e4nWuf7mHWG2nWBkNpSNgBufsribKWOiUVFaqe8SIAjmXZNMb0z9mdfdIdHLoCy4wHfY6b4DMk7m3XWBXnwpFi1goEeZ58vYPrns1xz5Im1gfjSMehSQbwsa5lvr8lor0q4FIH2AgnT+zhocUeJubVfEhVn1TTOYVkBBZuiPGNe0qIBNtsvbQ839+Q5/7nVnLqf63ipFti/HHJzrh4Iy0J8FQH/Jm+Yc1P71JdplwA+7VDk7Tu0UN7ztV8YGSffbzvoCUJf3oxws/m9GBN0GvtrfTZb2jv4gvXLuOU2+u5f/V4IommEPEHYeHogD+dQ8PehfVFId9L1yFAxIty5WdjTGjKk/W3rVO63xWggnwbkh7feyTFnLdD7a1WCSp99l1d3Xz+xg3cvHxXmtJp6iLgKoLXwUEFKRDx4J0OoSPXu9m4lchoaCrKFccV8Eulmh7naPr6wT0DgbNcN7f8k2oVAMVIiZ89sIaH141maMrgB1pWoMHFAaqG1c3rO5S5K/zy0KjeRUbOGT69Z5pjxmboLtTuYMw+9zCBQtLCC2uEDNXNuw1nBAlvrc5xw2uNNKQj5ake2//UH5XqiIDvLDe9GB7Rti24SkyEs/cB9Ys1e5CaQQzfelQ7pbeS6nxmSQ/vlBqIyvb7+UqSqRKN9PfROIGDhgTc/Yrw8NIAa+nVwVK27PeP3RnGJrPkHTWpoej7+QCEYW/SKL2t+ensziLqtusxK4LPFqA9D14UMqUwaujv1HPIb3j80x0Bq7pLeLb6+sXKOQTDmurYaWiCUomaHO1X0yFRvTV8iUQclW0jQCqZw0wBNhRg9zHKz05VZl+k/GpajsD1bxtZxYynosri9iifu7nAqq7CxrMCqsUSGMuedR0ENRgR12dE0LuBoBXoLEHeQapqChQmjWshbUqo2l4J3rnwRHHxHAdMFL50AEzfVUiZcBUn7x9n1yE+F92WY3F7jOaEwad/RsCWnNAQF55dlea4azM88FXLyKRX1eGXWgbAIyLZPu8HgDDqqs2QKANdGSGbo6pZu5WhEFNHexyxU56OPEQ+ZKKnSHkna3gWUUGVY/dW/nSeMOcs4byJQkrB98NkSsmHo8d7PPJlw2f2yLM26+MH/WMNKtO/iyWlblgSsbbXZyA61cEDArUy6r1HWbKu1EvF8fjxiTGaIj1kikLEblYMUi4MqSzouh4gopz+ScfdFyj3tRpO3clggvBkEjVhx5A1QsSGx9ONro9x65kJfn1KiVS8RHtP9aNst9UldWUdgVW+eSI8eJYwsnwOblWpgfIvrcgmanbGUk32gC33wT26svrj0CpWYO+RCWae4RieyrMmo2SL4Xi1oh/693U9SjqlXHyM49EL4Y/T4KjhZZYw0A84g1DwTPkIWidcfGCCJy9QztkvT1F9uvLl6h2z6byfbQWgFcvUmYWMrxyzt/LABcrPDoNUlUWhm1tSVyrwakcaz0qfuyylRqNiVSHiCf+zSHEHO2yVbdQVJThyQh1PXhTwq2dKzF7o0dHtUBGGNRmO3lP54mRhl8pZe0HYZWvM1h+mson8AHZujHLdqY4LDgi48lmf+xfA2h6PuIV4FCrje9yH8FmymQ/1XRh55AOlPiWcsK/ylf3h5LGVI3F7NzLHqSIiLFvdyVvrhWisrlwbKH0m/AiCNP1rjaCQQmB8nvyqsldLpFfTwtwWbeaOVflwtUfEKgsgBMEmt7CtCL2yy0CZ3+646xWfO94wvLlKaM9bRIWoKQ+n2pxLKDN7vobTSZ0oTQnHLiMNx+2qnLqXcGBz2dC7UIl6e5++C9nEKx9aySWzh9KcjvRZAkzU4UcNQ96cgzT9q6sJwrAG1vco3z66xBVHe1WVRL3birhyidTG23PlSaB9eOD1uxVBgfnrA55YaVm8MuCVDsOyHkM2W5k5DJ4HiQQMT8LUFmX3UbDPcGH/IZvuS51sFLxsgwVVgVK+h6N/287zPWNIWfpwPJyinhBduwRJXeFrrGT6PMMmZS2uixd56iJhbCoSUr6ybS6FGlcFO91Uk/fuL8oRYpCgPPza2rAfMrHRmJafuNy8Kts5u8h34cT0q/+6hIsfHUVjOtbnlcECFJNgJrzTSWAFqQHAiHmwsivK/5njENFtBjH9URJeKUuHsnkvl6bhIKHQ4EFzLHw1eOHPKJex+ZXyNbb/ZPAgUDwrvLx4DZc/1UAqFe/zlnABfJSmnjwmnXsKZzbCnT69Kgc63PiMx32LSiEfHgz8nsAKmq9Yg8rxr1u8ykSKNWGEYfpASX2nWE94Z9UqvjQzQ5dpIbIN4/Or26A+p+SeUPPa+PGYUqUevUZkiLVccmfAqq48nicEbnA1hsqHvPomagpzFZ4VFry1itNu7OblwgQS5aaQvhaNE4gGwsrEcjGuq0BEfWplZJ1C3IPlnQla/xTQnstjrdTcEjjVmjVU9uVVKXy1NuDuucs44feWF4u79WqWcW8BlQjq8gWe6IouMZNfuRZTWIEaatayHThoiMPTy1N89mZlfTZfPuWrNgvqCOsLTNkZD8T6QadhsYu1Qqarm+/NWsoZd9WxwQ4lHaldzaMRJefQyc3L+EpndqmpHz+NfJAqjyKs3eU7aE7CE8sTTLuhxIKVXXjlWfmB277v1rLgK2PnjPgsX7mGBcvbwRWxtnx0uw4cwRsjWFPikRdXcNw167ni5Z2Ip5uIida0GcQZQyQPS6lXVqQabO4TYy4ftX4Ra0YfTKSkNa2ccOWDmJZ1x5j1siNmsxww2mDLCZKNWi/VDVBWrZw0Gu520SyPzV/Hv9zbwQ8esVz3AjzwZsCwVIndhhmM2I1TSQXptyIRBbQ8C8kawYhjwbJ1fP/2dXz3iSZWM5z6qC1HElLTOxGEvBR0wvJ/MnvP+f0DcvEvz9Z71xxKe/R8TCQCNS68rKSLSwo9eZ+jd+rh0kOUEyYlsTa6hdsIk2D63keQLRtPSvkeHpjXzrXPOh5+p4GCrScZDanXbAGMK3DSzlkuOUQ4YrcUSGQjJWwkpFylRrtdVbAbs9slFi7v4NqnMtz4Wh1r/BYaEoItn5Eo/aCKirj6RI/Zpe7Hy2dfcMVEbwoHceVj1zDyxEPJMyXsTpDa5UmlbAk8oCnp8diKBub8qciho3pondLDMRM8JgyLlxct8gHgtERQDHh9VYaHX+th5iuWZ9Y3g5cknYCElFOo5RHvEOPeJTH+srTA4WO7OX8f4YRJKeqTHhXuLgjKtfyybdZBywDLaaiknmVTBs/P87eFHdz4TIF7FyV4xx9LOu7RHCljFpF+qV0UlJITbc6+SHd9y2UikpeFC97Qmy65nRenDOWhxvOIG+3XyV2V+Lm7FGa+6mLC1Kb17DHCstPQRsbEczR6JVSV9pLHskyMZWs7WLiqyPNdw8mUwMYSpCNlAbj3hrSV1jMn0FUAggK7N+Y4eXfDKZNKTB1bRyK2pbKpqwhz88+RLbi/ymcbefeeCQHHwhVruO91uHdBkSfXDiFHklRciErohrQf3RCAGAK/ULT7Rm976fF/OWNq8MM2Ixp0aGnd9Zx563oeXnYxpnEkLqhtS/IHKkK53SvrEx4d5xxRLeARcrC+WooSBWuJepD0QsGGWKC6+630IOZ8yBaVpGSY0AzHje5m752b+eSIHsY0JUimku/e3x9gz8KrWCiwvr2D51ZFeXZZjqfe8nl2Qz09pThE4qQjlWynfiSNLaJKISL+8DXzzWfemvuzX9x63mVf2f8az/MDz7XHssTr3kGevwn/xO+IzTjRfmpO3BwgVtY5HVHqoxA2VyU2Ln+8YrA1DPWcSq/7BoLy98SskkxCoHUs6oJ56+swL/kMj0B9WhhX38Pk+g2MrQ9IptPEY3FiEQ8DFHyfXL5ILtPFhq4CC3qaeD1Tx9pOy/qCR0FGEfNCwFsfDe832IZ77VPvL6IRSiayamVh+J9LV4oRHaltgaiqQhdBd5RzvvwfzB7/HbJNUWwwCFqw+mp3lCuJlRCc+kFYTua7cmOKbHIAlarnstMv08blUfceRMo1Am4zyvijZzIdeTVuROZxs0fmjcvu/e2FV7Te8t921vTpgYfj9cDVo3UBI49dzK7P3Dx63rDzU5QcNatDGmCX6qYJ3BbFWiFued/oYEvnKBU92CwsFQYa7+QUNySNfErfuP+/f/rlK/SHamS6BKHrtTLJi8ikM6efsdfPL75x0hHjf3t5U/d8yUdNIOr4uF1aLtuqzCX23/UK3uffQfn3B6LFFJQipiTvLJXuusOvLarK/u9cs9G/b8Sus2bNclpS+a/lB9w0btVja4fnSzYwxvExmej5d+na1BFExA3tWR3rfmDm8j/LC2+ownMjVwbvUQBAZ83ErL7qqjWz1k/9t6mZZdJlweyQ/6D1a84YSj6u8PLfZjW8lD6Zb5z+isjlwowZ7v0UgOnTJWhra/OG3XHILyMTHrtwv9WLXcHKx9IVDPrdbyHw/WBq5m7vu4dcffkSLp53xOzZHszYQpjvofxmzJjh6/fV3HHR+Vdf2HPbm6PigSkY45sdSjBoLitKviR+ncF+LqaPHtNw0IbWVrWPHnlk8MFMxruiRtqQz7900UkLGw66a+mEc0U9FKeiH5sRz4PzMqL0qPjDbad38vBX5px13qEnHiKSU1WR9xk1Yj4IPrRxObfccdU9P/rbT89o4tm/ZfIldcgOUDiQzT5K3mkwLr/GO3fPF+7/zXmHHneISK6trc3IB8yZ+dDt3NY225sx4yh/tc7e9d+viT9z9fq962IuieCsYnas+AATvnril3I574uJuS/+5n9nPylyUqFN1cz4kAkVHyrFGTOO8tta26LDOHJJbOHN35+2/DnrolinpoTusAQDRvgGSioumil4h/svzHvl5JmHi5xYbGtr+1Dhb9UCbGYLDMxwD+/z+tevP23NvnO05dwe2cOJC0St3QEKPrJQzynWqF8qSn3nG9Lor3ktMenKac9+7bbFW9v5vVQAQGdaZHrAvx3Q0tp14TeeS53yvRWpISaVw0fV2wEO+9PcgwNfDV5g4ZPrHmTEsivn3PTjnY6Xib8uVDZstZ9V9TWzVe30WSGHPObf//34cYvO/PUbY8fuVjQ4UcSKituhCLXc8og6nFq1DUjditXL1xcf65zS/ad7Z9/2wE2x9uz81tbP2VmzZgW9UabeMkzyla9e411zzVdLNyRnTpv5rannL2ww/7gqP8H4Pi7qQfl4Y7tDYH0H8MI6SdFCDLEEhXxefn5p7M4nfvrt0/6KEGw8aLGXpd3bvF2PaGvz5vxohh8VGP1/f3JcXP/hjGGxSefN70qTD8DzcQIiqqKyXV/1sd3tRsIiXd8JFNFOvyeYuuEhLmt4Ljvhqh9/5oBOHlVVMWLUoUa2ob1ru6Qyk5l2elurMkPcfaqxK2+54vcb5k4Zt7b50FJnvOHwfAGcxfd8rBVUVcsd8rpDId5P4uowgogIJRXNl8CUUC+1nql16+UYf428dEiUP5byvH3jLdP+pevIB1pbYfr06cG2W5e+uFpnWmZND0ATQDT73M2N+/655Yak+PuU3CGNa5MJekwCGxAYB74H1pRH4Kozte5JGMCGHURwAc4JxnhQKEIe/Ba71NuvuZ1Mp+XM9jdoWfQrPj2++Xf/8bM7bjsD3O7wqIg4RLZr2lXfbUNVESvhEIvy/Xz+m5+fePhbB039ccNB03YfXTg8G5idXx91BM2Z9WRKDRTEC/sBwnX4WChBZcHFhVNIpIRGG5FEsbNUzHrtY+0Dwz61LEHQsOL5S7/3k3++7ReZk7/wi4n7rso89e97wUO1up++0gIJdQEuB9k8Dp05e8/0xbOnX1Ta+5+i3/Tv8TrfnnDUKz3F1LLC0/uO8lNmfedwjAnQPkg6bX2g4keoahJOucqPGUss5dxif5xMOCx2/6+b19/qljbPTbXsM3LXpRMOyn7hhPUjCj++aqPLNAb9wQ+86ZdfrjMBI9InjU7/H+i0IauXknFJAAAAAElFTkSuQmCC" alt="그리팅 심볼">
+  <h1>그리팅 제품 가이드 배경 생성기</h1>
+  <span class="tagline">사진 속 색상 또는 브랜드 컬러로 배경 만들기</span>
+  <button id="themeToggle" title="테마 전환">🌙 다크</button>
+</header>
+
+<div class="layout">
+  <aside>
+    <div>
+      <div class="section-title">사진</div>
+      <div id="dropzone">
+        <strong>사진을 드래그하거나 클릭</strong>
+        붙여넣기(Ctrl/⌘+V)도 가능해요
+      </div>
+      <div id="thumbWrap">
+        <img id="thumb" alt="업로드한 사진">
+        <button id="reupload">사진 변경</button>
+      </div>
+      <div id="manualWrap">
+        <span>🎨</span>
+        <span><strong>색상 직접 지정</strong><br>사진 없이 팔레트로 만드는 중</span>
+        <button id="manualToPhoto">사진 추가</button>
+      </div>
+      <button class="shuffle-btn" id="manualBtn">사진 없이 색상 직접 지정</button>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+
+    <div>
+      <div class="section-title">대지 사이즈</div>
+      <select id="sizePreset">
+        <option value="720x320" selected>720 × 320 — 유저가이딩 업데이트 모달</option>
+        <option value="1920x1080">1920 × 1080 — FHD 배경</option>
+        <option value="1280x720">1280 × 720 — HD</option>
+        <option value="1200x630">1200 × 630 — OG 이미지</option>
+        <option value="1080x1080">1080 × 1080 — 인스타 피드</option>
+        <option value="1080x1920">1080 × 1920 — 스토리 / 릴스</option>
+        <option value="custom">직접 입력</option>
+      </select>
+      <div class="size-inputs">
+        <input type="number" id="artWInput" value="720" min="16" max="4096"> ×
+        <input type="number" id="artHInput" value="320" min="16" max="4096"> px
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">모드</div>
+      <div class="mode-group" id="modeGroup">
+        <button data-mode="gradient" class="active">그라데이션</button>
+        <button data-mode="hatch">크로스해칭</button>
+        <button data-mode="ascii">아스키</button>
+      </div>
+    </div>
+
+    <div id="paletteSection" style="display:none">
+      <div class="section-title">색상</div>
+      <div class="sub-title">그리팅 브랜드 프리셋</div>
+      <div class="chips" id="brandGrad"></div>
+      <div class="sub-title">내 프리셋</div>
+      <select id="gradPreset" style="margin-bottom:8px">
+        <option value="">프리셋 선택…</option>
+      </select>
+      <div class="grid2" style="margin-bottom:8px">
+        <button class="shuffle-btn" id="gradSave" style="margin-top:0">현재 설정 저장</button>
+        <button class="shuffle-btn" id="gradDel" style="margin-top:0">프리셋 삭제</button>
+      </div>
+      <div id="gradSaveRow" style="display:none; margin-bottom:8px">
+        <input type="text" id="gradName" placeholder="프리셋 이름" maxlength="20" style="width:100%">
+        <div class="grid2" style="margin-top:6px">
+          <button class="shuffle-btn" id="gradConfirm" style="margin-top:0">저장</button>
+          <button class="shuffle-btn" id="gradCancel" style="margin-top:0">취소</button>
+        </div>
+      </div>
+      <div id="gradCount" style="font-size:11px;color:var(--muted);margin-bottom:12px"></div>
+      <div class="row" style="margin-bottom:12px">
+        <label class="small">색상 개수</label>
+        <div class="count-group" id="countGroup">
+          <button data-n="2">2</button>
+          <button data-n="3">3</button>
+          <button data-n="4" class="active">4</button>
+          <button data-n="5">5</button>
+        </div>
+      </div>
+      <div class="swatches" id="swatches"></div>
+      <button class="shuffle-btn" id="shuffleBtn">↻ 다시 추출 (랜덤 시드)</button>
+    </div>
+
+    <div id="controlSection" style="display:none">
+      <div class="section-title">옵션</div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small">애니메이션</label>
+        <span class="toggle"><input type="checkbox" id="animToggle"><span class="track" onclick="document.getElementById('animToggle').click()"></span></span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">속도</label>
+        <input type="range" id="speed" min="0.2" max="3" step="0.1" value="1">
+        <span class="val" id="speedVal">1.0×</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">섞임 정도</label>
+        <input type="range" id="blend" min="0" max="100" step="1" value="50">
+        <span class="val" id="blendLabel">50</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">노이즈</label>
+        <input type="range" id="noise" min="0" max="100" step="1" value="0">
+        <span class="val" id="noiseLabel">0</span>
+      </div>
+      <div class="row">
+        <label class="small">색상 포인트 표시</label>
+        <span class="toggle"><input type="checkbox" id="handleToggle" checked><span class="track" onclick="document.getElementById('handleToggle').click()"></span></span>
+      </div>
+    </div>
+
+    <div id="hatchSection" style="display:none">
+      <div class="section-title">크로스해칭</div>
+      <select id="hatchPreset" style="margin-bottom:8px">
+        <option value="">프리셋 선택…</option>
+      </select>
+      <div class="grid2" style="margin-bottom:8px">
+        <button class="shuffle-btn" id="savePreset" style="margin-top:0">현재 설정 저장</button>
+        <button class="shuffle-btn" id="delPreset" style="margin-top:0">프리셋 삭제</button>
+      </div>
+      <div id="presetSaveRow" style="display:none; margin-bottom:14px">
+        <input type="text" id="presetName" placeholder="프리셋 이름 (예: 네이비 판화)" maxlength="20" style="width:100%">
+        <div class="grid2" style="margin-top:6px">
+          <button class="shuffle-btn" id="presetConfirm" style="margin-top:0">저장</button>
+          <button class="shuffle-btn" id="presetCancel" style="margin-top:0">취소</button>
+        </div>
+      </div>
+      <div id="presetCount" style="font-size:11px;color:var(--muted);margin-bottom:14px"></div>
+      <div class="sub-title">그리팅 브랜드 잉크</div>
+      <div class="chips" id="brandHatch"></div>
+      <select id="hatchStyle" style="margin-bottom:14px">
+        <option value="cross" selected>교차 해칭 (Cross-Hatching)</option>
+        <option value="hatch">단방향 해칭 (Hatching)</option>
+        <option value="tri">3방향 해칭 (Tri-Hatching)</option>
+        <option value="stipple">점묘 (Stippling)</option>
+        <option value="custom">커스텀 레이어</option>
+      </select>
+      <div id="layerBlock">
+        <div class="row" style="margin-bottom:14px">
+          <label class="small" style="white-space:nowrap">기준 각도</label>
+          <input type="range" id="hatchAngle" min="0" max="180" step="1" value="0">
+          <span class="val" id="hatchAngleVal">0°</span>
+        </div>
+        <div class="sub-title">레이어 (각도 · 명암 임계값 · 잉크)</div>
+        <div class="layer-list" id="hatchLayers"></div>
+        <button class="shuffle-btn" id="addLayer" style="margin:0 0 14px">+ 레이어 추가</button>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">선 밀도</label>
+        <input type="range" id="hatchDensity" min="1" max="10" step="1" value="4">
+        <span class="val" id="hatchDensityVal">4</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">펜 두께</label>
+        <input type="range" id="penThickness" min="0.5" max="4" step="0.1" value="1.2">
+        <span class="val" id="penThicknessVal">1.2</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">펜 흔들림</label>
+        <input type="range" id="penWobble" min="0" max="3" step="0.1" value="0.8">
+        <span class="val" id="penWobbleVal">0.8</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">선 거칠기</label>
+        <input type="range" id="lineRough" min="0" max="3" step="0.1" value="1">
+        <span class="val" id="lineRoughVal">1.0</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">오버슈트</label>
+        <input type="range" id="lineOver" min="0" max="12" step="1" value="4">
+        <span class="val" id="lineOverVal">4</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">잉크 번짐</label>
+        <input type="range" id="inkBleed" min="0" max="3" step="0.1" value="1.5">
+        <span class="val" id="inkBleedVal">1.5</span>
+      </div>
+      <div class="row ink-row" style="margin-bottom:14px">
+        <label class="small">잉크 색</label>
+        <input type="color" id="inkColor" value="#000064">
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">잉크 투명도</label>
+        <input type="range" id="inkOpacity" min="5" max="100" step="1" value="80">
+        <span class="val" id="inkOpacityVal">80</span>
+      </div>
+      <div class="row ink-row" style="margin-bottom:14px">
+        <label class="small">배경 색</label>
+        <input type="color" id="hatchBg" value="#faf6ee">
+      </div>
+      <div class="row" style="margin-bottom:6px">
+        <label class="small" style="white-space:nowrap">사진 확대</label>
+        <input type="range" id="hatchZoom" min="1" max="3" step="0.05" value="1">
+        <span class="val" id="hatchZoomVal">1.0×</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px">캔버스를 드래그하면 사진 위치를 옮길 수 있어요</div>
+      <button class="shuffle-btn" id="regenHatch" style="margin-top:0">↻ 다시 생성 (랜덤 시드)</button>
+    </div>
+
+    <div id="asciiSection" style="display:none">
+      <div class="section-title">아스키 아트</div>
+      <select id="asciiCharset" style="margin-bottom:8px">
+        <option value="standard" selected>표준 (@%#*+=-:.)</option>
+        <option value="blocks">블록 (█▓▒░)</option>
+        <option value="dots">도트 (●◐○·)</option>
+        <option value="binary">바이너리 (10)</option>
+        <option value="custom">커스텀…</option>
+        <option value="sequence">문자 시퀀스…</option>
+      </select>
+      <input type="text" id="asciiCustom" placeholder="문자 입력" maxlength="32" style="width:100%; display:none; margin-bottom:8px">
+      <div class="row" style="margin:6px 0 14px">
+        <label class="small" style="white-space:nowrap">문자 크기</label>
+        <input type="range" id="asciiSize" min="6" max="32" step="1" value="12">
+        <span class="val" id="asciiSizeVal">12</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">문자 간격</label>
+        <input type="range" id="asciiLs" min="0.5" max="2" step="0.05" value="1">
+        <span class="val" id="asciiLsVal">1.0</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">줄 높이</label>
+        <input type="range" id="asciiLh" min="0.5" max="2" step="0.05" value="1">
+        <span class="val" id="asciiLhVal">1.0</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small" style="white-space:nowrap">대비</label>
+        <input type="range" id="asciiContrast" min="0.5" max="2" step="0.05" value="1">
+        <span class="val" id="asciiContrastVal">1.0</span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small">원본 색상 사용</label>
+        <span class="toggle"><input type="checkbox" id="asciiColorMode"><span class="track" onclick="document.getElementById('asciiColorMode').click()"></span></span>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <label class="small">반전</label>
+        <span class="toggle"><input type="checkbox" id="asciiInvert"><span class="track" onclick="document.getElementById('asciiInvert').click()"></span></span>
+      </div>
+      <div class="row ink-row" style="margin-bottom:14px">
+        <label class="small">글자 색</label>
+        <input type="color" id="asciiInk" value="#0a0b0d">
+      </div>
+      <div class="row ink-row" style="margin-bottom:14px">
+        <label class="small">배경 색</label>
+        <input type="color" id="asciiBg" value="#ffffff">
+      </div>
+      <div class="row" style="margin-bottom:6px">
+        <label class="small" style="white-space:nowrap">사진 확대</label>
+        <input type="range" id="asciiZoom" min="1" max="3" step="0.05" value="1">
+        <span class="val" id="asciiZoomVal">1.0×</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px">캔버스를 드래그하면 사진 위치를 옮길 수 있어요</div>
+    </div>
+
+    <div class="btns">
+      <div class="section-title">내보내기</div>
+      <div class="grid2">
+        <button class="action primary" id="downloadPng" disabled>PNG</button>
+        <button class="action primary" id="downloadWebp" disabled>WebP</button>
+      </div>
+      <div class="row" style="margin:4px 0">
+        <label class="small">영상 길이</label>
+        <span style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px">
+          <input type="number" id="videoSec" value="4" min="1" max="15"> 초
+        </span>
+      </div>
+      <div class="grid2">
+        <button class="action" id="downloadGif" disabled>GIF</button>
+        <button class="action" id="downloadMp4" disabled>MP4</button>
+      </div>
+      <div class="grid2">
+        <button class="action" id="downloadSvg" disabled>SVG</button>
+        <button class="action" id="downloadTxt" disabled>TXT</button>
+      </div>
+      <button class="action" id="copyCss" disabled>CSS 복사</button>
+    </div>
+  </aside>
+
+  <main>
+    <div id="stage">
+      <canvas id="meshCanvas"></canvas>
+      <div id="placeholder">
+        <div class="big">🖼️</div>
+        <div>사진을 업로드하거나 색상을 직접 지정하면 배경이 여기에 나타나요</div>
+      </div>
+    </div>
+    <div id="sizeBadge">720 × 320</div>
+  </main>
+</div>
+
+<footer>
+  <img src="data:image/png;base64,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" alt="그리팅 심볼">
+  <span>Greeting · 그리팅 제품 가이드 배경 생성기</span>
+</footer>
+
+<div id="toast"></div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const dropzone = $('dropzone'), fileInput = $('fileInput');
+  const canvas = $('meshCanvas'), ctx = canvas.getContext('2d');
+
+  // localStorage helpers (모든 섹션보다 먼저 선언되어야 함)
+  const lsGet = (k, fb) => { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch (e) { return fb; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+
+  /* ---------- theme (light / dark) ---------- */
+  function applyTheme(theme) {
+    if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+    $('themeToggle').textContent = theme === 'dark' ? '☀️ 라이트' : '🌙 다크';
+  }
+  let theme = 'light';
+  try { theme = localStorage.getItem('pg-theme') || 'light'; } catch (e) {}
+  applyTheme(theme);
+  $('themeToggle').addEventListener('click', () => {
+    theme = theme === 'dark' ? 'light' : 'dark';
+    applyTheme(theme);
+    try { localStorage.setItem('pg-theme', theme); } catch (e) {}
+  });
+
+  let colors = null;            // [{r,g,b}] x4
+  let pixels = null;            // sampled pixels for re-extraction
+  let animating = false, speed = 1, time = 0, rafId = null;
+  let lastTs = null;
+  let artW = 720, artH = 320;   // artboard size (px)
+  const TIME_SCALE = 0.25;      // time units per real second at speed 1
+
+  /* ---------- artboard size ---------- */
+  function updateStageSize() {
+    const mainEl = document.querySelector('main');
+    const availW = Math.max(120, mainEl.clientWidth - 64);
+    const availH = Math.max(120, mainEl.clientHeight - 96);
+    const s = Math.min(availW / artW, availH / artH, 1.2);
+    const stage = $('stage');
+    stage.style.width = Math.round(artW * s) + 'px';
+    stage.style.height = Math.round(artH * s) + 'px';
+    $('sizeBadge').textContent = artW + ' × ' + artH;
+    if (colors) { draw(); updateHandles(); }
+  }
+
+  $('sizePreset').addEventListener('change', e => {
+    if (e.target.value === 'custom') return;
+    const [w, h] = e.target.value.split('x').map(Number);
+    artW = w; artH = h;
+    $('artWInput').value = w; $('artHInput').value = h;
+    updateStageSize();
+  });
+  [['artWInput', v => artW = v], ['artHInput', v => artH = v]].forEach(([id, set]) => {
+    $(id).addEventListener('change', e => {
+      const v = Math.min(4096, Math.max(16, parseInt(e.target.value, 10) || 16));
+      e.target.value = v; set(v);
+      $('sizePreset').value = 'custom';
+      updateStageSize();
+    });
+  });
+
+  // blob motion parameters (per color, up to 5)
+  const blobs = [
+    { bx: 0.22, by: 0.25, ax: 0.16, ay: 0.14, fx: 0.31, fy: 0.23, px: 0.0, py: 1.3 },
+    { bx: 0.78, by: 0.22, ax: 0.14, ay: 0.16, fx: 0.27, fy: 0.34, px: 2.1, py: 0.4 },
+    { bx: 0.25, by: 0.78, ax: 0.15, ay: 0.13, fx: 0.24, fy: 0.29, px: 4.2, py: 2.7 },
+    { bx: 0.76, by: 0.75, ax: 0.13, ay: 0.15, fx: 0.33, fy: 0.21, px: 1.1, py: 5.0 },
+    { bx: 0.50, by: 0.50, ax: 0.14, ay: 0.14, fx: 0.29, fy: 0.26, px: 3.3, py: 1.8 },
+  ];
+
+  // per-color gradient size (0..100, 50 = neutral) → influence multiplier 0.25x ~ 4x
+  let colorCount = 4;
+  const sizes = [50, 50, 50, 50, 50];
+  const sizeFactor = i => Math.pow(4, (sizes[i] - 50) / 50);
+
+  /* ---------- render mode & cross-hatching options ---------- */
+  let mode = 'gradient';
+  // hatch layer templates: [angle(deg), darkness threshold 0..1, line offset fraction]
+  const STYLE_LAYERS = {
+    cross: [[45, 0.12, 0], [135, 0.32, 0], [0, 0.52, 0], [90, 0.72, 0]],
+    hatch: [[45, 0.12, 0], [45, 0.32, 0.5], [45, 0.52, 0.25], [45, 0.72, 0.75]],
+    tri:   [[0, 0.15, 0], [60, 0.4, 0], [120, 0.65, 0]],
+  };
+  const MAX_LAYERS = 6;
+  const layersFor = style => (STYLE_LAYERS[style] || STYLE_LAYERS.cross)
+    .map(([deg, thr, frac]) => ({ deg, thr, frac, ink: null, on: true }));
+  const hatch = {
+    style: 'cross', density: 4, thickness: 1.2, wobble: 0.8,
+    rough: 1, over: 4, bleed: 1.5, ink: '#001946', inkOp: 0.8, bg: '#f2f2e8',
+    seed: 12345, zoom: 1, offX: 0, offY: 0,
+    angle: 0, layers: layersFor('cross'),
+  };
+  // make an (old / partial) hatch state safe to use
+  function normalizeHatch() {
+    if (!Array.isArray(hatch.layers) || !hatch.layers.length) hatch.layers = layersFor(hatch.style);
+    hatch.layers = hatch.layers.slice(0, MAX_LAYERS).map(l => ({
+      deg: Math.min(180, Math.max(0, +l.deg || 0)), thr: Math.min(0.95, Math.max(0.02, +l.thr || 0.12)),
+      frac: +l.frac || 0, ink: l.ink || null, on: l.on !== false,
+    }));
+    if (typeof hatch.angle !== 'number') hatch.angle = 0;
+  }
+  let hatchDirty = true, hatchCanvas = null, hatchGeom = null;
+
+  /* ---------- Greeting brand presets ---------- */
+  const BRAND_GRADS = [
+    { name: '그리팅 블루', colors: ['#1890ff', '#0f7ae5', '#001946', '#e4f0fc'] },
+    { name: '스카이 라이트', colors: ['#f2f9ff', '#e4f0fc', '#51a2ff', '#1890ff'] },
+    { name: '딥 네이비', colors: ['#001946', '#0f7ae5', '#1a1d27', '#2e5bff'] },
+    { name: 'AX 다크', colors: ['#050609', '#1a1d27', '#51a2ff', '#90e878'] },
+    { name: 'AX 크림', colors: ['#f2f2e8', '#ffffff', '#90e878', '#51a2ff'] },
+    { name: '마그넷', colors: ['#05060a', '#2b5cff', '#40bcff', '#8c92a2'] },
+    { name: '웜 포인트', colors: ['#fff6e0', '#ffffff', '#e8590c', '#1890ff'] },
+  ];
+  const BRAND_INKS = [
+    { name: '네이비 × 크림', ink: '#001946', bg: '#f2f2e8' },
+    { name: '블루 × 화이트', ink: '#1890ff', bg: '#ffffff' },
+    { name: '화이트 × 네이비', ink: '#f2f9ff', bg: '#001946' },
+    { name: '그린 × 다크', ink: '#90e878', bg: '#050609' },
+    { name: '블루 × 스카이', ink: '#0f7ae5', bg: '#e4f0fc' },
+  ];
+  let manualMode = false; // true = colors chosen by hand, no photo
+
+  function syncPanels() {
+    const up = !!colors;
+    const grad = mode === 'gradient';
+    $('shuffleBtn').style.display = pixels ? '' : 'none';
+    $('manualBtn').style.display = colors ? 'none' : '';
+    $('paletteSection').style.display = (up && grad) ? 'block' : 'none';
+    $('controlSection').style.display = (up && grad) ? 'block' : 'none';
+    $('hatchSection').style.display = (up && mode === 'hatch') ? 'block' : 'none';
+    $('asciiSection').style.display = (up && mode === 'ascii') ? 'block' : 'none';
+    $('downloadPng').disabled = !up;
+    $('downloadWebp').disabled = !up;
+    $('downloadGif').disabled = !up || !grad;
+    $('downloadMp4').disabled = !up || !grad;
+    $('copyCss').disabled = !up || !grad;
+    $('downloadSvg').disabled = !up || mode !== 'hatch';
+    $('downloadTxt').disabled = !up || mode !== 'ascii';
+    $('stage').classList.toggle('hatch-mode', !grad); // grab cursor for photo pan
+    syncHandleVis();
+  }
+  function syncHandleVis() {
+    $('stage').classList.toggle('hide-handles', mode !== 'gradient' || !$('handleToggle').checked);
+  }
+  document.querySelectorAll('#modeGroup button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      mode = btn.dataset.mode;
+      document.querySelectorAll('#modeGroup button').forEach(b => b.classList.toggle('active', b === btn));
+      syncPanels();
+      if (colors) { draw(); updateHandles(); }
+    });
+  });
+
+  /* ---------- manual color mode (no photo) ---------- */
+  function enterManual(hexes) {
+    manualMode = true;
+    pixels = null; photoLum = null; lum = null;
+    dropzone.style.display = 'none';
+    $('thumbWrap').style.display = 'none';
+    $('manualWrap').style.display = 'flex';
+    setColors(hexes);
+  }
+  // replace the current palette (keeps positions / blend / motion)
+  function setColors(hexes) {
+    colors = hexes.map(fromHex);
+    colorCount = colors.length;
+    document.querySelectorAll('#countGroup button').forEach(b => b.classList.toggle('active', parseInt(b.dataset.n, 10) === colorCount));
+    renderSwatches();
+    startUI();
+    markSourceDirty();
+  }
+  // hatch / ascii read luminance from the gradient when there is no photo
+  function markSourceDirty() { if (!photoLum) { hatchDirty = true; asciiDirty = true; } }
+  $('manualBtn').addEventListener('click', () => enterManual(BRAND_GRADS[0].colors));
+  $('manualToPhoto').addEventListener('click', () => fileInput.click());
+
+  function renderBrandChips() {
+    const g = $('brandGrad');
+    g.innerHTML = '';
+    BRAND_GRADS.forEach(p => {
+      const b = document.createElement('button');
+      b.className = 'chip'; b.type = 'button'; b.title = p.colors.join(' · ');
+      b.innerHTML = `<span class="stripes">${p.colors.map(c => `<span style="background:${c}"></span>`).join('')}</span><span class="name">${p.name}</span>`;
+      b.addEventListener('click', () => {
+        if (!colors) enterManual(p.colors); else setColors(p.colors);
+        g.querySelectorAll('.chip').forEach(x => x.classList.toggle('active', x === b));
+        toast(`브랜드 프리셋 "${p.name}" 적용됨 ✓`);
+      });
+      g.append(b);
+    });
+    const h = $('brandHatch');
+    h.innerHTML = '';
+    BRAND_INKS.forEach(p => {
+      const b = document.createElement('button');
+      b.className = 'chip ink'; b.type = 'button'; b.title = `잉크 ${p.ink} / 배경 ${p.bg}`;
+      b.innerHTML = `<span class="stripes" style="background:${p.bg}"><span class="mark" style="--ck:${p.ink}"></span></span><span class="name">${p.name}</span>`;
+      b.addEventListener('click', () => {
+        hatch.ink = p.ink; hatch.bg = p.bg;
+        applyHatchUI(); persistLastHatch();
+        hatchDirty = true; if (mode === 'hatch') draw();
+        h.querySelectorAll('.chip').forEach(x => x.classList.toggle('active', x === b));
+        toast(`브랜드 잉크 "${p.name}" 적용됨 ✓`);
+      });
+      h.append(b);
+    });
+  }
+
+  /* ---------- upload ---------- */
+  dropzone.addEventListener('click', () => fileInput.click());
+  $('reupload').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => e.target.files[0] && loadFile(e.target.files[0]));
+
+  ['dragover','dragenter'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drag'); }));
+  dropzone.addEventListener('drop', e => {
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) loadFile(f);
+  });
+  window.addEventListener('paste', e => {
+    const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'));
+    if (item) loadFile(item.getAsFile());
+  });
+
+  function loadFile(file) {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      manualMode = false;
+      $('thumb').src = url;
+      dropzone.style.display = 'none';
+      $('manualWrap').style.display = 'none';
+      $('thumbWrap').style.display = 'block';
+      samplePixels(img);
+      buildLum(img);
+      hatchDirty = true;
+      asciiDirty = true;
+      extractAndApply();
+    };
+    img.src = url;
+  }
+
+  /* ---------- pixel sampling ---------- */
+  function samplePixels(img) {
+    const s = 80; // downscale
+    const c = document.createElement('canvas');
+    const ratio = Math.min(s / img.width, s / img.height, 1);
+    c.width = Math.max(1, Math.round(img.width * ratio));
+    c.height = Math.max(1, Math.round(img.height * ratio));
+    const cc = c.getContext('2d');
+    cc.drawImage(img, 0, 0, c.width, c.height);
+    const data = cc.getImageData(0, 0, c.width, c.height).data;
+    pixels = [];
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i+3] < 200) continue;
+      pixels.push([data[i], data[i+1], data[i+2]]);
+    }
+  }
+
+  /* ---------- k-means (k=4) ---------- */
+  function kmeans(pts, k, seedRandom) {
+    const rand = seedRandom || Math.random;
+    // k-means++ init
+    const centers = [pts[Math.floor(rand() * pts.length)].slice()];
+    while (centers.length < k) {
+      let dists = pts.map(p => Math.min(...centers.map(c => dist2(p, c))));
+      const sum = dists.reduce((a,b) => a+b, 0);
+      let r = rand() * sum, idx = 0;
+      for (; idx < dists.length - 1 && r > dists[idx]; idx++) r -= dists[idx];
+      centers.push(pts[idx].slice());
+    }
+    let assign = new Array(pts.length).fill(0);
+    for (let iter = 0; iter < 12; iter++) {
+      let changed = false;
+      for (let i = 0; i < pts.length; i++) {
+        let best = 0, bd = Infinity;
+        for (let j = 0; j < k; j++) {
+          const d = dist2(pts[i], centers[j]);
+          if (d < bd) { bd = d; best = j; }
+        }
+        if (assign[i] !== best) { assign[i] = best; changed = true; }
+      }
+      const sums = Array.from({length: k}, () => [0,0,0,0]);
+      for (let i = 0; i < pts.length; i++) {
+        const s = sums[assign[i]];
+        s[0] += pts[i][0]; s[1] += pts[i][1]; s[2] += pts[i][2]; s[3]++;
+      }
+      for (let j = 0; j < k; j++) {
+        if (sums[j][3] > 0) centers[j] = [sums[j][0]/sums[j][3], sums[j][1]/sums[j][3], sums[j][2]/sums[j][3]];
+      }
+      if (!changed) break;
+    }
+    // order clusters by size (largest first)
+    const counts = Array.from({length: k}, () => 0);
+    assign.forEach(a => counts[a]++);
+    return centers
+      .map((c, j) => ({ c, n: counts[j] }))
+      .sort((a, b) => b.n - a.n)
+      .map(o => ({ r: Math.round(o.c[0]), g: Math.round(o.c[1]), b: Math.round(o.c[2]) }));
+  }
+  const dist2 = (a, b) => (a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2;
+
+  function extractAndApply(seed) {
+    if (!pixels || pixels.length < colorCount) return;
+    let rand = Math.random;
+    if (seed !== undefined) { // simple seeded PRNG
+      let s = seed;
+      rand = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+    }
+    colors = kmeans(pixels, colorCount, rand);
+    renderSwatches();
+    startUI();
+  }
+
+  /* ---------- color count (2~5) ---------- */
+  document.querySelectorAll('#countGroup button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      colorCount = parseInt(btn.dataset.n, 10);
+      document.querySelectorAll('#countGroup button').forEach(b => b.classList.toggle('active', b === btn));
+      if (pixels) { extractAndApply(); return; }
+      if (!colors) return;
+      // manual mode: grow with brand blues / shrink from the end
+      const fill = BRAND_GRADS[0].colors.map(fromHex);
+      const next = colors.slice(0, colorCount);
+      while (next.length < colorCount) next.push(fill[next.length % fill.length]);
+      setColors(next.map(toHex));
+    });
+  });
+
+  $('shuffleBtn').addEventListener('click', () => extractAndApply(Math.floor(Math.random() * 100000) + 1));
+
+  /* ---------- swatches ---------- */
+  const toHex = c => '#' + [c.r, c.g, c.b].map(v => v.toString(16).padStart(2, '0')).join('');
+  const fromHex = h => ({ r: parseInt(h.slice(1,3),16), g: parseInt(h.slice(3,5),16), b: parseInt(h.slice(5,7),16) });
+
+  const sizeLabel = i => Math.sqrt(sizeFactor(i)).toFixed(1) + '×';
+
+  function renderSwatches() {
+    const wrap = $('swatches');
+    wrap.innerHTML = '';
+    colors.forEach((c, i) => {
+      const row = document.createElement('div');
+      row.className = 'color-row';
+
+      const num = document.createElement('span');
+      num.className = 'num';
+      num.textContent = i + 1;
+
+      const input = document.createElement('input');
+      input.type = 'color';
+      input.value = toHex(c);
+      input.title = '색상 변경';
+
+      const hex = document.createElement('input');
+      hex.type = 'text';
+      hex.className = 'hex';
+      hex.value = toHex(c);
+      hex.maxLength = 7;
+      hex.spellcheck = false;
+      hex.title = 'hex 값 직접 입력';
+
+      const size = document.createElement('input');
+      size.type = 'range';
+      size.min = 0; size.max = 100; size.step = 1;
+      size.value = sizes[i];
+      size.title = '그라데이션 크기';
+
+      const val = document.createElement('span');
+      val.className = 'val';
+      val.textContent = sizeLabel(i);
+
+      input.addEventListener('input', () => {
+        colors[i] = fromHex(input.value);
+        hex.value = input.value;
+        if (handles[i]) handles[i].style.background = input.value;
+        markSourceDirty();
+        if (!animating) draw();
+      });
+      const commitHex = () => {
+        let v = hex.value.trim();
+        if (v && v[0] !== '#') v = '#' + v;
+        if (/^#[0-9a-fA-F]{3}$/.test(v)) v = '#' + [...v.slice(1)].map(ch => ch + ch).join('');
+        if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+          v = v.toLowerCase();
+          colors[i] = fromHex(v);
+          input.value = v;
+          hex.value = v;
+          if (handles[i]) handles[i].style.background = v;
+          markSourceDirty();
+          if (!animating) draw();
+        } else {
+          hex.value = toHex(colors[i]); // revert invalid input
+        }
+      };
+      hex.addEventListener('change', commitHex);
+      hex.addEventListener('keydown', e => { if (e.key === 'Enter') hex.blur(); });
+      size.addEventListener('input', () => {
+        sizes[i] = parseInt(size.value, 10);
+        val.textContent = sizeLabel(i);
+        markSourceDirty();
+        if (!animating) draw();
+      });
+      // hovering a row highlights its point on the canvas
+      row.addEventListener('mouseenter', () => handles[i] && handles[i].classList.add('hl'));
+      row.addEventListener('mouseleave', () => handles[i] && handles[i].classList.remove('hl'));
+
+      row.append(num, input, hex, size, val);
+      wrap.append(row);
+    });
+  }
+
+  function startUI() {
+    $('placeholder').style.display = 'none';
+    syncPanels();
+    createHandles();
+    if (!rafId) loop();
+    draw(); updateHandles();
+  }
+
+  /* ---------- draggable color points ---------- */
+  const handles = [];
+
+  function createHandles() {
+    const stage = $('stage');
+    while (handles.length < colors.length) {
+      const i = handles.length;
+      const h = document.createElement('div');
+      h.className = 'handle';
+      h.dataset.n = i + 1;
+      h.title = '드래그해서 색상 시작 지점 이동';
+      attachDrag(h, i);
+      stage.append(h);
+      handles.push(h);
+    }
+    while (handles.length > colors.length) handles.pop().remove();
+    handles.forEach((h, i) => { h.style.background = toHex(colors[i]); });
+    updateHandles();
+  }
+
+  function updateHandles() {
+    if (!handles.length || !colors || mode !== 'gradient') return;
+    const stage = $('stage');
+    const w = stage.clientWidth, hgt = stage.clientHeight;
+    handles.forEach((h, i) => {
+      const p = blobPos(blobs[i], time);
+      h.style.left = (p.x * w) + 'px';
+      h.style.top = (p.y * hgt) + 'px';
+    });
+  }
+
+  function attachDrag(el, i) {
+    el.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      el.setPointerCapture(e.pointerId);
+      el.classList.add('dragging');
+      const stage = $('stage');
+      const move = ev => {
+        const rect = stage.getBoundingClientRect();
+        const nx = Math.min(1, Math.max(0, (ev.clientX - rect.left) / rect.width));
+        const ny = Math.min(1, Math.max(0, (ev.clientY - rect.top) / rect.height));
+        // set base so that the CURRENT animated position lands on the pointer
+        const b = blobs[i];
+        b.bx = nx - b.ax * Math.sin(time * b.fx * 2 * Math.PI + b.px);
+        b.by = ny - b.ay * Math.cos(time * b.fy * 2 * Math.PI + b.py);
+        markSourceDirty();
+        if (!animating) { draw(); updateHandles(); }
+      };
+      const up = ev => {
+        el.classList.remove('dragging');
+        el.removeEventListener('pointermove', move);
+        el.removeEventListener('pointerup', up);
+        el.removeEventListener('pointercancel', up);
+      };
+      el.addEventListener('pointermove', move);
+      el.addEventListener('pointerup', up);
+      el.addEventListener('pointercancel', up);
+    });
+  }
+
+  /* ---------- mesh rendering ---------- */
+  const clampPos = v => Math.min(0.96, Math.max(0.04, v)); // keep points inside the artboard
+  function blobPos(b, t) {
+    return {
+      x: clampPos(b.bx + b.ax * Math.sin(t * b.fx * 2 * Math.PI + b.px)),
+      y: clampPos(b.by + b.ay * Math.cos(t * b.fy * 2 * Math.PI + b.py)),
+    };
+  }
+
+  // blend control: slider 0(뚜렷) ~ 100(부드럽게) → IDW falloff power 3.2 ~ 0.8
+  let blendVal = 50;
+  const blendPower = () => 3.2 - (blendVal / 100) * 2.4;
+
+  function renderMesh(targetCtx, w, h, t) {
+    // inverse-distance-weighted mesh: each point shows its exact color at its center
+    const img = targetCtx.createImageData(w, h);
+    const data = img.data;
+    const M = Math.max(w, h);
+    const P = blendPower();
+    const pts = colors.map((c, i) => {
+      const p = blobPos(blobs[i], t);
+      return { x: p.x * w, y: p.y * h, r: c.r, g: c.g, b: c.b, s: Math.pow(sizeFactor(i), P) };
+    });
+    let k = 0;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let sr = 0, sg = 0, sb = 0, sw = 0;
+        for (let i = 0; i < pts.length; i++) {
+          const dx = (x - pts[i].x) / M, dy = (y - pts[i].y) / M;
+          const q = dx * dx + dy * dy + 0.0035;
+          const wgt = pts[i].s / Math.pow(q, P);
+          sr += pts[i].r * wgt; sg += pts[i].g * wgt; sb += pts[i].b * wgt; sw += wgt;
+        }
+        data[k++] = sr / sw; data[k++] = sg / sw; data[k++] = sb / sw; data[k++] = 255;
+      }
+    }
+    targetCtx.putImageData(img, 0, 0);
+  }
+
+  /* ---------- noise (film grain) ---------- */
+  let noiseAmount = 0; // 0..1
+  const noiseTile = document.createElement('canvas');
+  (function buildNoiseTile() {
+    const s = 128;
+    noiseTile.width = noiseTile.height = s;
+    const nctx = noiseTile.getContext('2d');
+    const img = nctx.createImageData(s, s);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = Math.floor(Math.random() * 256);
+      img.data[i] = img.data[i+1] = img.data[i+2] = v;
+      img.data[i+3] = 255;
+    }
+    nctx.putImageData(img, 0, 0);
+  })();
+
+  function applyNoise(targetCtx, w, h) {
+    if (noiseAmount <= 0) return;
+    targetCtx.save();
+    targetCtx.globalCompositeOperation = 'overlay';
+    targetCtx.globalAlpha = noiseAmount * 0.55;
+    targetCtx.fillStyle = targetCtx.createPattern(noiseTile, 'repeat');
+    targetCtx.fillRect(0, 0, w, h);
+    targetCtx.restore();
+  }
+
+  /* ---------- cross-hatching engine ---------- */
+  let lum = null;       // active source { data, w, h, lo, hi }
+  let photoLum = null;  // from the uploaded photo
+  let meshLum = null;   // from the gradient itself (manual color mode)
+
+  function buildLum(img) {
+    const w = 256;
+    const h = Math.max(2, Math.round(img.height / img.width * w));
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const cc = c.getContext('2d');
+    cc.drawImage(img, 0, 0, w, h);
+    photoLum = { data: cc.getImageData(0, 0, w, h).data, w, h, lo: 0, hi: 1 };
+    lum = photoLum;
+  }
+  // render the current gradient at low res and stretch its luminance to full range
+  function buildMeshLum() {
+    const w = 256, h = Math.max(2, Math.round(artH / artW * w));
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const cc = c.getContext('2d');
+    renderMesh(cc, w, h, time);
+    const data = cc.getImageData(0, 0, w, h).data;
+    let lo = 1, hi = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const l = (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) / 255;
+      if (l < lo) lo = l; if (l > hi) hi = l;
+    }
+    if (hi - lo < 0.05) { lo = Math.max(0, lo - 0.1); hi = Math.min(1, hi + 0.1); }
+    meshLum = { data, w, h, lo, hi };
+  }
+  // pick the luminance source for hatch / ascii; returns false when nothing to draw from
+  function ensureLum() {
+    if (photoLum) { lum = photoLum; return true; }
+    if (!colors) { lum = null; return false; }
+    buildMeshLum();
+    lum = meshLum;
+    return true;
+  }
+
+  // darkness (0..1) at artboard coords, photo cover-fitted with zoom + pan offset
+  function darknessAt(x, y, W, H) {
+    const k = Math.max(W / lum.w, H / lum.h) * (hatch.zoom || 1);
+    let px = Math.floor((x - (W - lum.w * k) / 2 - (hatch.offX || 0) * W) / k);
+    let py = Math.floor((y - (H - lum.h * k) / 2 - (hatch.offY || 0) * H) / k);
+    px = Math.min(lum.w - 1, Math.max(0, px));
+    py = Math.min(lum.h - 1, Math.max(0, py));
+    const i = (py * lum.w + px) * 4;
+    const d = lum.data;
+    const l = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
+    const n = (l - lum.lo) / (lum.hi - lum.lo); // full-range stretch (identity for photos)
+    return 1 - Math.min(1, Math.max(0, n));
+  }
+
+  function seededRand(seed) {
+    let s = seed >>> 0;
+    return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  }
+
+  function generateHatch(W, H) {
+    const rnd = seededRand(hatch.seed);
+    const strokes = [], dotsArr = [];
+    const sp = Math.max(3, 18 - hatch.density * 1.5); // line spacing (px)
+    const th = hatch.thickness;
+
+    if (hatch.style === 'stipple') {
+      for (let y = sp / 2; y < H; y += sp) {
+        for (let x = sp / 2; x < W; x += sp) {
+          const jx = x + (rnd() - 0.5) * sp * 0.8;
+          const jy = y + (rnd() - 0.5) * sp * 0.8;
+          const dk = darknessAt(jx, jy, W, H);
+          if (dk < 0.1 || rnd() > dk * 1.2) continue;
+          dotsArr.push({
+            x: jx, y: jy,
+            r: th * (0.5 + dk * 1.3) * (1 + (rnd() - 0.5) * 0.3 * hatch.bleed),
+            a: hatch.inkOp * (0.7 + 0.3 * rnd()),
+          });
+        }
+      }
+    } else {
+      // each layer: its own angle (plus the base angle), darkness threshold and optional ink
+      const layers = hatch.layers.filter(l => l.on);
+      const diag = Math.hypot(W, H), cx = W / 2, cy = H / 2, step = 3;
+
+      for (const { deg, thr, frac, ink } of layers) {
+        const a = (deg + hatch.angle) * Math.PI / 180;
+        const ux = Math.cos(a), uy = Math.sin(a);
+        const nX = -uy, nY = ux;
+        const phase = rnd() * Math.PI * 2;
+
+        for (let o = -diag / 2 + frac * sp; o <= diag / 2; o += sp) {
+          // collect dark runs along this line
+          const runs = [];
+          let cur = null;
+          for (let s = -diag / 2; s <= diag / 2; s += step) {
+            const px = cx + nX * o + ux * s, py = cy + nY * o + uy * s;
+            const on = px >= -2 && px <= W + 2 && py >= -2 && py <= H + 2 && darknessAt(px, py, W, H) >= thr;
+            if (on) { if (!cur) cur = { s0: s }; cur.s1 = s; }
+            else if (cur) { runs.push(cur); cur = null; }
+          }
+          if (cur) runs.push(cur);
+
+          for (const r of runs) {
+            if (r.s1 - r.s0 < step) continue;
+            const s0 = r.s0 - hatch.over * rnd(); // overshoot both ends
+            const s1 = r.s1 + hatch.over * rnd();
+            const pts = [];
+            for (let s = s0; s <= s1; s += 4) {
+              const wob = Math.sin(s * 0.12 + phase + o * 0.05) * hatch.wobble + (rnd() - 0.5) * 2 * hatch.rough;
+              pts.push([cx + nX * (o + wob) + ux * s, cy + nY * (o + wob) + uy * s]);
+            }
+            if (pts.length < 2) continue;
+            strokes.push({
+              pts,
+              w: Math.max(0.2, th * (1 + (rnd() - 0.35) * 0.5 * hatch.bleed)),
+              a: hatch.inkOp * (0.7 + 0.3 * rnd()),
+              c: ink || null,
+            });
+            if (rnd() < hatch.bleed * 0.05) { // occasional ink blob
+              const p = pts[Math.floor(rnd() * pts.length)];
+              dotsArr.push({ x: p[0], y: p[1], r: th * (0.8 + rnd() * hatch.bleed), a: hatch.inkOp * 0.5, c: ink || null });
+            }
+          }
+        }
+      }
+    }
+    return { W, H, strokes, dots: dotsArr, bg: hatch.bg, ink: hatch.ink };
+  }
+
+  function renderHatchGeom(tctx, g) {
+    tctx.fillStyle = g.bg;
+    tctx.fillRect(0, 0, g.W, g.H);
+    tctx.lineCap = 'round';
+    tctx.lineJoin = 'round';
+    for (const st of g.strokes) {
+      tctx.strokeStyle = st.c || g.ink;
+      tctx.globalAlpha = st.a;
+      tctx.lineWidth = st.w;
+      tctx.beginPath();
+      tctx.moveTo(st.pts[0][0], st.pts[0][1]);
+      for (let i = 1; i < st.pts.length; i++) tctx.lineTo(st.pts[i][0], st.pts[i][1]);
+      tctx.stroke();
+    }
+    for (const d of g.dots) {
+      tctx.fillStyle = d.c || g.ink;
+      tctx.globalAlpha = d.a;
+      tctx.beginPath();
+      tctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+      tctx.fill();
+    }
+    tctx.globalAlpha = 1;
+  }
+
+  function ensureHatch() {
+    if (!hatchDirty && hatchCanvas && hatchCanvas.width === artW && hatchCanvas.height === artH) return;
+    if (!ensureLum()) return;
+    hatchGeom = generateHatch(artW, artH);
+    hatchCanvas = hatchCanvas || document.createElement('canvas');
+    hatchCanvas.width = artW; hatchCanvas.height = artH;
+    renderHatchGeom(hatchCanvas.getContext('2d'), hatchGeom);
+    hatchDirty = false;
+  }
+
+  function buildSvg(g) {
+    const f = n => Math.round(n * 10) / 10;
+    const parts = [
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${g.W} ${g.H}" width="${g.W}" height="${g.H}">`,
+      `<rect width="${g.W}" height="${g.H}" fill="${g.bg}"/>`,
+      `<g stroke="${g.ink}" fill="none" stroke-linecap="round" stroke-linejoin="round">`,
+    ];
+    for (const st of g.strokes) {
+      const d = 'M' + st.pts.map(p => `${f(p[0])} ${f(p[1])}`).join('L');
+      const sc = st.c ? ` stroke="${st.c}"` : '';
+      parts.push(`<path d="${d}"${sc} stroke-width="${f(st.w)}" stroke-opacity="${st.a.toFixed(2)}"/>`);
+    }
+    parts.push('</g>', `<g fill="${g.ink}">`);
+    for (const d of g.dots) {
+      const fc = d.c ? ` fill="${d.c}"` : '';
+      parts.push(`<circle cx="${f(d.x)}" cy="${f(d.y)}" r="${f(d.r)}"${fc} fill-opacity="${d.a.toFixed(2)}"/>`);
+    }
+    parts.push('</g>', '</svg>');
+    return parts.join('\n');
+  }
+
+  /* hatch controls */
+  const hatchControls = [
+    ['hatchDensity', 'density', v => v, v => v],
+    ['penThickness', 'thickness', parseFloat, v => v.toFixed(1)],
+    ['penWobble', 'wobble', parseFloat, v => v.toFixed(1)],
+    ['lineRough', 'rough', parseFloat, v => v.toFixed(1)],
+    ['lineOver', 'over', v => parseInt(v, 10), v => v],
+    ['inkBleed', 'bleed', parseFloat, v => v.toFixed(1)],
+    ['inkOpacity', 'inkOp', v => parseInt(v, 10) / 100, (v, raw) => raw],
+  ];
+  hatchControls.forEach(([id, prop, parse, fmt]) => {
+    $(id).addEventListener('input', e => {
+      const v = parse(e.target.value);
+      hatch[prop] = v;
+      const label = $(id + 'Val');
+      if (label) label.textContent = fmt(v, e.target.value);
+      hatchDirty = true;
+      if (mode === 'hatch') draw();
+    });
+  });
+  $('hatchStyle').addEventListener('change', e => {
+    hatch.style = e.target.value;
+    if (STYLE_LAYERS[hatch.style]) hatch.layers = layersFor(hatch.style);
+    renderLayerRows();
+    hatchDirty = true; if (mode === 'hatch') draw();
+  });
+  $('hatchAngle').addEventListener('input', e => {
+    hatch.angle = parseInt(e.target.value, 10);
+    $('hatchAngleVal').textContent = hatch.angle + '°';
+    hatchDirty = true; if (mode === 'hatch') draw();
+  });
+  // any edit to a layer turns the style into "custom"
+  function layersEdited() {
+    if (hatch.style !== 'stipple') { hatch.style = 'custom'; $('hatchStyle').value = 'custom'; }
+    persistLastHatch();
+    hatchDirty = true; if (mode === 'hatch') draw();
+  }
+  function renderLayerRows() {
+    const wrap = $('hatchLayers');
+    $('layerBlock').style.display = hatch.style === 'stipple' ? 'none' : 'block';
+    wrap.innerHTML = '';
+    hatch.layers.forEach((l, i) => {
+      const row = document.createElement('div');
+      row.className = 'layer-row' + (l.on ? '' : ' off');
+      row.innerHTML = `
+        <input type="checkbox" ${l.on ? 'checked' : ''} title="레이어 켜기/끄기">
+        <div class="field"><label><span>각도</span><span class="deg">${l.deg}°</span></label><input type="range" class="r-deg" min="0" max="180" step="1" value="${l.deg}"></div>
+        <div class="field"><label><span>임계값</span><span class="thr">${Math.round(l.thr * 100)}</span></label><input type="range" class="r-thr" min="2" max="95" step="1" value="${Math.round(l.thr * 100)}"></div>
+        <input type="color" value="${l.ink || hatch.ink}" title="레이어 잉크 색 (기본: 공통 잉크)">
+        <button class="rm" title="레이어 삭제">×</button>`;
+      const [chk, , , col, rm] = row.children;
+      chk.addEventListener('change', () => { l.on = chk.checked; row.classList.toggle('off', !l.on); layersEdited(); });
+      row.querySelector('.r-deg').addEventListener('input', e => { l.deg = parseInt(e.target.value, 10); row.querySelector('.deg').textContent = l.deg + '°'; layersEdited(); });
+      row.querySelector('.r-thr').addEventListener('input', e => { l.thr = parseInt(e.target.value, 10) / 100; row.querySelector('.thr').textContent = e.target.value; layersEdited(); });
+      col.addEventListener('input', () => { l.ink = col.value; layersEdited(); });
+      rm.addEventListener('click', () => {
+        if (hatch.layers.length <= 1) { toast('레이어는 최소 1개 필요해요'); return; }
+        hatch.layers.splice(i, 1); renderLayerRows(); layersEdited();
+      });
+      wrap.append(row);
+    });
+    $('addLayer').disabled = hatch.layers.length >= MAX_LAYERS;
+  }
+  $('addLayer').addEventListener('click', () => {
+    if (hatch.layers.length >= MAX_LAYERS) { toast(`레이어는 최대 ${MAX_LAYERS}개까지예요`); return; }
+    const last = hatch.layers[hatch.layers.length - 1] || { deg: 45, thr: 0.3 };
+    hatch.layers.push({ deg: (last.deg + 45) % 180, thr: Math.min(0.9, last.thr + 0.15), frac: 0, ink: null, on: true });
+    renderLayerRows(); layersEdited();
+  });
+  $('inkColor').addEventListener('input', e => { hatch.ink = e.target.value; hatchDirty = true; if (mode === 'hatch') draw(); });
+  $('hatchBg').addEventListener('input', e => { hatch.bg = e.target.value; hatchDirty = true; if (mode === 'hatch') draw(); });
+  $('regenHatch').addEventListener('click', () => { hatch.seed = Math.floor(Math.random() * 1e9); hatchDirty = true; if (mode === 'hatch') draw(); });
+
+  /* ---------- ASCII art engine ---------- */
+  const ascii = {
+    charset: 'standard', custom: '', size: 12, colorMode: false,
+    invert: false, contrast: 1, ink: '#0a0b0d', bg: '#ffffff',
+    ls: 1, lh: 1, // 문자 간격 / 줄 높이
+  };
+  const getSeq = () => {
+    const s = (ascii.custom || '').replace(/\s+/g, ' ').trim();
+    return s.length ? s : 'GREETING ';
+  };
+  let asciiDirty = true, asciiCanvas = null;
+  const ASCII_RAMPS = { standard: '@%#*+=-:. ', blocks: '█▓▒░ ', dots: '●◐○· ', binary: '10 ' };
+  const getRamp = () => (ascii.charset === 'custom' && ascii.custom.length >= 2) ? ascii.custom : (ASCII_RAMPS[ascii.charset] || ASCII_RAMPS.standard);
+
+  // source rgb at artboard coords (same cover+zoom+pan mapping as darknessAt)
+  function srcRGBAt(x, y, W, H) {
+    const k = Math.max(W / lum.w, H / lum.h) * (hatch.zoom || 1);
+    let px = Math.floor((x - (W - lum.w * k) / 2 - (hatch.offX || 0) * W) / k);
+    let py = Math.floor((y - (H - lum.h * k) / 2 - (hatch.offY || 0) * H) / k);
+    px = Math.min(lum.w - 1, Math.max(0, px));
+    py = Math.min(lum.h - 1, Math.max(0, py));
+    const i = (py * lum.w + px) * 4;
+    return [lum.data[i], lum.data[i + 1], lum.data[i + 2]];
+  }
+
+  function asciiCellChar(d, ramp) {
+    let v = Math.min(1, Math.max(0, (d - 0.5) * ascii.contrast + 0.5));
+    if (ascii.invert) v = 1 - v;
+    return ramp[Math.min(ramp.length - 1, Math.floor((1 - v) * ramp.length))];
+  }
+
+  // brightness value after contrast/invert (0=light, 1=dark)
+  function asciiVal(d) {
+    let v = Math.min(1, Math.max(0, (d - 0.5) * ascii.contrast + 0.5));
+    if (ascii.invert) v = 1 - v;
+    return v;
+  }
+
+  function asciiGrid(W, H) {
+    const cell = ascii.size;
+    const cw = Math.max(3, cell * 0.6 * ascii.ls);
+    const ch = Math.max(4, cell * ascii.lh);
+    return { cw, ch, cols: Math.ceil(W / cw), rows: Math.ceil(H / ch) };
+  }
+
+  function renderAscii(tctx, W, H) {
+    tctx.fillStyle = ascii.bg;
+    tctx.fillRect(0, 0, W, H);
+    if (!lum) return;
+    const { cw, ch, cols, rows } = asciiGrid(W, H);
+    const isSeq = ascii.charset === 'sequence';
+    const seq = getSeq();
+    const ramp = getRamp();
+    tctx.font = `${ascii.size}px ui-monospace, Menlo, Consolas, monospace`;
+    tctx.textBaseline = 'top';
+    tctx.fillStyle = ascii.ink;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const x = c * cw, y = r * ch;
+        const d = darknessAt(x + cw / 2, y + ch / 2, W, H);
+        let chch, alpha = 1;
+        if (isSeq) {
+          const v = asciiVal(d);
+          if (v < 0.18) continue; // light areas stay blank
+          chch = seq[(r * cols + c) % seq.length];
+          if (chch === ' ') continue;
+          alpha = 0.35 + 0.65 * v; // darker = more solid
+        } else {
+          chch = asciiCellChar(d, ramp);
+          if (chch === ' ') continue;
+        }
+        if (ascii.colorMode) {
+          const [rr, gg, bb] = srcRGBAt(x + cw / 2, y + ch / 2, W, H);
+          tctx.fillStyle = `rgb(${rr},${gg},${bb})`;
+        }
+        tctx.globalAlpha = alpha;
+        tctx.fillText(chch, x, y);
+      }
+    }
+    tctx.globalAlpha = 1;
+  }
+
+  function ensureAscii() {
+    if (!asciiDirty && asciiCanvas && asciiCanvas.width === artW && asciiCanvas.height === artH) return;
+    if (!ensureLum()) return;
+    asciiCanvas = asciiCanvas || document.createElement('canvas');
+    asciiCanvas.width = artW; asciiCanvas.height = artH;
+    renderAscii(asciiCanvas.getContext('2d'), artW, artH);
+    asciiDirty = false;
+  }
+
+  function buildAsciiText(W, H) {
+    const { cw, ch, cols, rows } = asciiGrid(W, H);
+    const isSeq = ascii.charset === 'sequence';
+    const seq = getSeq();
+    const ramp = getRamp();
+    const lines = [];
+    for (let r = 0; r < rows; r++) {
+      let line = '';
+      for (let c = 0; c < cols; c++) {
+        const d = darknessAt(c * cw + cw / 2, r * ch + ch / 2, W, H);
+        if (isSeq) {
+          line += asciiVal(d) < 0.18 ? ' ' : seq[(r * cols + c) % seq.length];
+        } else {
+          line += asciiCellChar(d, ramp);
+        }
+      }
+      lines.push(line.replace(/\s+$/, ''));
+    }
+    return lines.join('\n');
+  }
+
+  /* ascii controls */
+  const asciiRedraw = () => { asciiDirty = true; if (mode === 'ascii') draw(); persistLastAscii(); };
+  function syncCustomInput() {
+    const cs = ascii.charset;
+    $('asciiCustom').style.display = (cs === 'custom' || cs === 'sequence') ? 'block' : 'none';
+    $('asciiCustom').placeholder = cs === 'sequence' ? '반복할 텍스트 (예: GREETING)' : '어두움→밝음 순서로 문자 입력';
+  }
+  $('asciiCharset').addEventListener('change', e => {
+    ascii.charset = e.target.value;
+    syncCustomInput();
+    asciiRedraw();
+  });
+  $('asciiCustom').addEventListener('input', e => { ascii.custom = e.target.value; asciiRedraw(); });
+  $('asciiSize').addEventListener('input', e => { ascii.size = parseInt(e.target.value, 10); $('asciiSizeVal').textContent = ascii.size; asciiRedraw(); });
+  $('asciiLs').addEventListener('input', e => { ascii.ls = parseFloat(e.target.value); $('asciiLsVal').textContent = ascii.ls.toFixed(1); asciiRedraw(); });
+  $('asciiLh').addEventListener('input', e => { ascii.lh = parseFloat(e.target.value); $('asciiLhVal').textContent = ascii.lh.toFixed(1); asciiRedraw(); });
+  $('asciiContrast').addEventListener('input', e => { ascii.contrast = parseFloat(e.target.value); $('asciiContrastVal').textContent = ascii.contrast.toFixed(1); asciiRedraw(); });
+  $('asciiColorMode').addEventListener('change', e => { ascii.colorMode = e.target.checked; asciiRedraw(); });
+  $('asciiInvert').addEventListener('change', e => { ascii.invert = e.target.checked; asciiRedraw(); });
+  $('asciiInk').addEventListener('input', e => { ascii.ink = e.target.value; asciiRedraw(); });
+  $('asciiBg').addEventListener('input', e => { ascii.bg = e.target.value; asciiRedraw(); });
+
+  function persistLastAscii() { lsSet('pg-ascii-last', { ...ascii }); }
+  function applyAsciiUI() {
+    $('asciiCharset').value = ascii.charset;
+    $('asciiCustom').value = ascii.custom;
+    syncCustomInput();
+    $('asciiSize').value = ascii.size;         $('asciiSizeVal').textContent = ascii.size;
+    $('asciiLs').value = ascii.ls;             $('asciiLsVal').textContent = ascii.ls.toFixed(1);
+    $('asciiLh').value = ascii.lh;             $('asciiLhVal').textContent = ascii.lh.toFixed(1);
+    $('asciiContrast').value = ascii.contrast; $('asciiContrastVal').textContent = ascii.contrast.toFixed(1);
+    $('asciiColorMode').checked = ascii.colorMode;
+    $('asciiInvert').checked = ascii.invert;
+    $('asciiInk').value = ascii.ink;
+    $('asciiBg').value = ascii.bg;
+  }
+  (function restoreAscii() {
+    const last = lsGet('pg-ascii-last', null);
+    if (last) Object.assign(ascii, last);
+    applyAsciiUI();
+  })();
+
+  $('downloadTxt').addEventListener('click', () => {
+    if (!ensureLum()) { toast('먼저 사진을 업로드하거나 색상을 지정해주세요'); return; }
+    const txt = buildAsciiText(artW, artH);
+    downloadBlob(new Blob([txt], { type: 'text/plain;charset=utf-8' }), `ascii-${artW}x${artH}.txt`);
+    toast('TXT 다운로드 시작 ✓');
+  });
+
+  /* ---------- photo zoom + pan (hatch & ascii modes) ---------- */
+  function clampPan() {
+    if (!ensureLum()) return;
+    const W = artW, H = artH;
+    const k = Math.max(W / lum.w, H / lum.h) * hatch.zoom;
+    const slackX = Math.max(0, (lum.w * k - W) / 2) / W;
+    const slackY = Math.max(0, (lum.h * k - H) / 2) / H;
+    hatch.offX = Math.min(slackX, Math.max(-slackX, hatch.offX));
+    hatch.offY = Math.min(slackY, Math.max(-slackY, hatch.offY));
+  }
+  function setZoom(v) {
+    hatch.zoom = v;
+    $('hatchZoom').value = v; $('hatchZoomVal').textContent = v.toFixed(1) + '×';
+    $('asciiZoom').value = v; $('asciiZoomVal').textContent = v.toFixed(1) + '×';
+    clampPan();
+    hatchDirty = true;
+    asciiDirty = true;
+    if (mode !== 'gradient') draw();
+  }
+  $('hatchZoom').addEventListener('input', e => setZoom(parseFloat(e.target.value)));
+  $('asciiZoom').addEventListener('input', e => setZoom(parseFloat(e.target.value)));
+
+  let panning = null, panRaf = false;
+  canvas.addEventListener('pointerdown', e => {
+    if (mode === 'gradient' || !ensureLum()) return;
+    e.preventDefault();
+    panning = { x: e.clientX, y: e.clientY, ox: hatch.offX, oy: hatch.offY };
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!panning) return;
+    const stage = $('stage');
+    hatch.offX = panning.ox + (e.clientX - panning.x) / stage.clientWidth;
+    hatch.offY = panning.oy + (e.clientY - panning.y) / stage.clientHeight;
+    clampPan();
+    hatchDirty = true;
+    asciiDirty = true;
+    if (!panRaf) { // throttle regeneration to one per frame
+      panRaf = true;
+      requestAnimationFrame(() => { panRaf = false; if (mode !== 'gradient') draw(); });
+    }
+  });
+  ['pointerup', 'pointercancel'].forEach(ev => canvas.addEventListener(ev, () => {
+    if (panning) { panning = null; persistLastHatch(); }
+  }));
+
+  /* ---------- hatch presets & persistence ---------- */
+  function persistLastHatch() { lsSet('pg-hatch-last', { ...hatch }); }
+
+  function applyHatchUI() {
+    $('hatchStyle').value = hatch.style;
+    $('hatchDensity').value = hatch.density;      $('hatchDensityVal').textContent = hatch.density;
+    $('penThickness').value = hatch.thickness;    $('penThicknessVal').textContent = hatch.thickness.toFixed(1);
+    $('penWobble').value = hatch.wobble;          $('penWobbleVal').textContent = hatch.wobble.toFixed(1);
+    $('lineRough').value = hatch.rough;           $('lineRoughVal').textContent = hatch.rough.toFixed(1);
+    $('lineOver').value = hatch.over;             $('lineOverVal').textContent = hatch.over;
+    $('inkBleed').value = hatch.bleed;            $('inkBleedVal').textContent = hatch.bleed.toFixed(1);
+    $('inkOpacity').value = Math.round(hatch.inkOp * 100); $('inkOpacityVal').textContent = Math.round(hatch.inkOp * 100);
+    $('inkColor').value = hatch.ink;
+    $('hatchBg').value = hatch.bg;
+    $('hatchAngle').value = hatch.angle;          $('hatchAngleVal').textContent = hatch.angle + '°';
+    renderLayerRows();
+    $('hatchZoom').value = hatch.zoom;            $('hatchZoomVal').textContent = hatch.zoom.toFixed(1) + '×';
+    $('asciiZoom').value = hatch.zoom;            $('asciiZoomVal').textContent = hatch.zoom.toFixed(1) + '×';
+  }
+
+  const MAX_PRESETS = 6;
+
+  function refreshPresetList(selected) {
+    const presets = lsGet('pg-hatch-presets', {});
+    const sel = $('hatchPreset');
+    sel.innerHTML = '<option value="">프리셋 선택…</option>' +
+      Object.keys(presets).map(n => `<option value="${n.replace(/"/g, '&quot;')}"${n === selected ? ' selected' : ''}>${n}</option>`).join('');
+    $('presetCount').textContent = `저장된 프리셋 ${Object.keys(presets).length} / ${MAX_PRESETS}`;
+  }
+
+  // inline save UI (prompt()가 동작하지 않는 환경 대응)
+  $('savePreset').addEventListener('click', () => {
+    const row = $('presetSaveRow');
+    const opening = row.style.display === 'none';
+    row.style.display = opening ? 'block' : 'none';
+    if (opening) {
+      const presets = lsGet('pg-hatch-presets', {});
+      $('presetName').value = $('hatchPreset').value || '';
+      $('presetName').placeholder = '프리셋 이름 (예: 내 스타일 ' + (Object.keys(presets).length + 1) + ')';
+      $('presetName').focus();
+    }
+  });
+  $('presetCancel').addEventListener('click', () => { $('presetSaveRow').style.display = 'none'; });
+
+  function commitPreset() {
+    const name = $('presetName').value.trim();
+    if (!name) { toast('프리셋 이름을 입력해주세요'); $('presetName').focus(); return; }
+    const presets = lsGet('pg-hatch-presets', {});
+    const isNew = !(name in presets);
+    if (isNew && Object.keys(presets).length >= MAX_PRESETS) {
+      toast(`프리셋은 최대 ${MAX_PRESETS}개까지 저장할 수 있어요. 기존 프리셋을 삭제해주세요`);
+      return;
+    }
+    presets[name] = { ...hatch };
+    lsSet('pg-hatch-presets', presets);
+    refreshPresetList(name);
+    $('presetSaveRow').style.display = 'none';
+    toast(`프리셋 "${name}" ${isNew ? '저장됨' : '덮어씀'} ✓`);
+  }
+  $('presetConfirm').addEventListener('click', commitPreset);
+  $('presetName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') commitPreset();
+    if (e.key === 'Escape') $('presetSaveRow').style.display = 'none';
+  });
+
+  $('delPreset').addEventListener('click', () => {
+    const name = $('hatchPreset').value;
+    if (!name) { toast('삭제할 프리셋을 먼저 선택해주세요'); return; }
+    const presets = lsGet('pg-hatch-presets', {});
+    delete presets[name];
+    lsSet('pg-hatch-presets', presets);
+    refreshPresetList();
+    toast(`프리셋 "${name}" 삭제됨`);
+  });
+
+  $('hatchPreset').addEventListener('change', e => {
+    const name = e.target.value;
+    if (!name) return;
+    const presets = lsGet('pg-hatch-presets', {});
+    if (!presets[name]) return;
+    Object.assign(hatch, presets[name]);
+    normalizeHatch();
+    clampPan();
+    applyHatchUI();
+    persistLastHatch();
+    hatchDirty = true;
+    if (mode === 'hatch') draw();
+    toast(`프리셋 "${name}" 적용됨 ✓`);
+  });
+
+  // persist any hatch-control change automatically & restore on load
+  $('hatchSection').addEventListener('input', persistLastHatch);
+  $('hatchSection').addEventListener('change', persistLastHatch);
+  (function restoreHatch() {
+    const last = lsGet('pg-hatch-last', null);
+    if (last) { Object.assign(hatch, last); }
+    normalizeHatch();
+    applyHatchUI();
+    refreshPresetList();
+    renderBrandChips();
+  })();
+
+  /* ---------- gradient presets ---------- */
+  function getGradState() {
+    return {
+      colors: colors.map(toHex),
+      sizes: sizes.slice(0, colors.length),
+      count: colorCount,
+      blend: blendVal,
+      noise: noiseAmount,
+      speed,
+      pos: blobs.slice(0, colors.length).map(b => ({ bx: b.bx, by: b.by })),
+    };
+  }
+
+  function applyGradState(st) {
+    colorCount = st.count || st.colors.length;
+    document.querySelectorAll('#countGroup button').forEach(b => b.classList.toggle('active', parseInt(b.dataset.n, 10) === colorCount));
+    colors = st.colors.map(fromHex);
+    (st.sizes || []).forEach((v, i) => { sizes[i] = v; });
+    blendVal = st.blend ?? 50;
+    noiseAmount = st.noise ?? 0;
+    speed = st.speed ?? 1;
+    (st.pos || []).forEach((p, i) => { if (blobs[i]) { blobs[i].bx = p.bx; blobs[i].by = p.by; } });
+    // sync UI
+    $('blend').value = blendVal;                 $('blendLabel').textContent = blendVal;
+    $('noise').value = Math.round(noiseAmount * 100); $('noiseLabel').textContent = Math.round(noiseAmount * 100);
+    $('speed').value = speed;                    $('speedVal').textContent = speed.toFixed(1) + '×';
+    renderSwatches();
+    createHandles();
+    markSourceDirty();
+    draw();
+    updateHandles();
+  }
+
+  function refreshGradList(selected) {
+    const presets = lsGet('pg-grad-presets', {});
+    const sel = $('gradPreset');
+    sel.innerHTML = '<option value="">프리셋 선택…</option>' +
+      Object.keys(presets).map(n => `<option value="${n.replace(/"/g, '&quot;')}"${n === selected ? ' selected' : ''}>${n}</option>`).join('');
+    $('gradCount').textContent = `저장된 프리셋 ${Object.keys(presets).length} / ${MAX_PRESETS}`;
+  }
+
+  $('gradSave').addEventListener('click', () => {
+    if (!colors) { toast('먼저 사진을 업로드하거나 색상을 지정해주세요'); return; }
+    const row = $('gradSaveRow');
+    const opening = row.style.display === 'none';
+    row.style.display = opening ? 'block' : 'none';
+    if (opening) {
+      $('gradName').value = $('gradPreset').value || '';
+      $('gradName').focus();
+    }
+  });
+  $('gradCancel').addEventListener('click', () => { $('gradSaveRow').style.display = 'none'; });
+
+  function commitGradPreset() {
+    const name = $('gradName').value.trim();
+    if (!name) { toast('프리셋 이름을 입력해주세요'); $('gradName').focus(); return; }
+    const presets = lsGet('pg-grad-presets', {});
+    const isNew = !(name in presets);
+    if (isNew && Object.keys(presets).length >= MAX_PRESETS) {
+      toast(`프리셋은 최대 ${MAX_PRESETS}개까지 저장할 수 있어요. 기존 프리셋을 삭제해주세요`);
+      return;
+    }
+    presets[name] = getGradState();
+    lsSet('pg-grad-presets', presets);
+    refreshGradList(name);
+    $('gradSaveRow').style.display = 'none';
+    toast(`프리셋 "${name}" ${isNew ? '저장됨' : '덮어씀'} ✓`);
+  }
+  $('gradConfirm').addEventListener('click', commitGradPreset);
+  $('gradName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') commitGradPreset();
+    if (e.key === 'Escape') $('gradSaveRow').style.display = 'none';
+  });
+
+  $('gradDel').addEventListener('click', () => {
+    const name = $('gradPreset').value;
+    if (!name) { toast('삭제할 프리셋을 먼저 선택해주세요'); return; }
+    const presets = lsGet('pg-grad-presets', {});
+    delete presets[name];
+    lsSet('pg-grad-presets', presets);
+    refreshGradList();
+    toast(`프리셋 "${name}" 삭제됨`);
+  });
+
+  $('gradPreset').addEventListener('change', e => {
+    const name = e.target.value;
+    if (!name) return;
+    const presets = lsGet('pg-grad-presets', {});
+    if (!presets[name]) return;
+    applyGradState(presets[name]);
+    toast(`프리셋 "${name}" 적용됨 ✓`);
+  });
+
+  refreshGradList();
+
+  // low-res offscreen for softness, upscaled to display canvas
+  const off = document.createElement('canvas');
+  const offCtx = off.getContext('2d');
+
+  function draw() {
+    if (!colors) return;
+    const stage = $('stage');
+    const dw = stage.clientWidth, dh = stage.clientHeight;
+    if (canvas.width !== dw || canvas.height !== dh) { canvas.width = dw; canvas.height = dh; }
+    if (mode === 'hatch') {
+      ensureHatch();
+      if (!hatchCanvas) return;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(hatchCanvas, 0, 0, dw, dh);
+      return;
+    }
+    if (mode === 'ascii') {
+      ensureAscii();
+      if (!asciiCanvas) return;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(asciiCanvas, 0, 0, dw, dh);
+      return;
+    }
+    const lw = 240, lh = Math.max(2, Math.round(240 * dh / Math.max(dw, 1)));
+    if (off.width !== lw || off.height !== lh) { off.width = lw; off.height = lh; }
+    renderMesh(offCtx, lw, lh, time);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(off, 0, 0, dw, dh);
+    applyNoise(ctx, dw, dh);
+  }
+
+  function loop(ts) {
+    rafId = requestAnimationFrame(loop);
+    if (lastTs == null) lastTs = ts || 0;
+    const dt = ((ts || 0) - lastTs) / 1000;
+    lastTs = ts || 0;
+    if (animating && mode === 'gradient') { time += dt * speed * TIME_SCALE; draw(); updateHandles(); }
+  }
+
+  window.addEventListener('resize', updateStageSize);
+  updateStageSize();
+
+  $('animToggle').addEventListener('change', e => { animating = e.target.checked; });
+  $('handleToggle').addEventListener('change', syncHandleVis);
+  $('speed').addEventListener('input', e => {
+    speed = parseFloat(e.target.value);
+    $('speedVal').textContent = speed.toFixed(1) + '×';
+  });
+  $('noise').addEventListener('input', e => {
+    noiseAmount = parseInt(e.target.value, 10) / 100;
+    $('noiseLabel').textContent = e.target.value;
+    if (!animating) draw();
+  });
+  $('blend').addEventListener('input', e => {
+    blendVal = parseInt(e.target.value, 10);
+    $('blendLabel').textContent = e.target.value;
+    markSourceDirty();
+    if (!animating) draw();
+  });
+
+  /* ---------- CSS copy ---------- */
+  function buildCss() {
+    const layers = colors.map((c, i) => {
+      const p = blobPos(blobs[i], time);
+      const stop = Math.min(95, Math.max(15, Math.round((40 + blendVal * 0.35) * Math.sqrt(sizeFactor(i)))));
+      return `radial-gradient(at ${Math.round(p.x*100)}% ${Math.round(p.y*100)}%, ${toHex(c)} 0px, transparent ${stop}%)`;
+    });
+    let blend = '';
+    if (noiseAmount > 0) {
+      const op = (noiseAmount * 0.55).toFixed(2);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2"/></filter><rect width="100%" height="100%" filter="url(#n)" opacity="${op}"/></svg>`;
+      layers.unshift(`url('data:image/svg+xml,${encodeURIComponent(svg).replace(/'/g, '%27')}')`);
+      blend = `\nbackground-blend-mode: overlay${', normal'.repeat(colors.length)};`;
+    }
+    return `background-color: ${toHex(colors[0])};\nbackground-image:\n  ${layers.join(',\n  ')};${blend}`;
+  }
+
+  $('copyCss').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(buildCss());
+      toast('CSS가 클립보드에 복사됐어요 ✓');
+    } catch {
+      // fallback
+      const ta = document.createElement('textarea');
+      ta.value = buildCss();
+      document.body.append(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      toast('CSS가 클립보드에 복사됐어요 ✓');
+    }
+  });
+
+  /* ---------- export: shared frame renderer ---------- */
+  function renderFrame(target, W, H, t) {
+    if (target.width !== W || target.height !== H) { target.width = W; target.height = H; }
+    const tctx = target.getContext('2d');
+    if (mode === 'hatch' || mode === 'ascii') {
+      const src = mode === 'hatch' ? (ensureHatch(), hatchCanvas) : (ensureAscii(), asciiCanvas);
+      if (src) {
+        tctx.imageSmoothingEnabled = true;
+        tctx.imageSmoothingQuality = 'high';
+        tctx.drawImage(src, 0, 0, W, H);
+      }
+      return target;
+    }
+    const lw = Math.min(320, W);
+    const lh = Math.max(2, Math.round(lw * H / W));
+    const lo = document.createElement('canvas');
+    lo.width = lw; lo.height = lh;
+    renderMesh(lo.getContext('2d'), lw, lh, t);
+    tctx.imageSmoothingEnabled = true;
+    tctx.imageSmoothingQuality = 'high';
+    tctx.drawImage(lo, 0, 0, W, H);
+    applyNoise(tctx, W, H);
+    return target;
+  }
+
+  function downloadBlob(blob, name) {
+    const a = document.createElement('a');
+    a.download = name;
+    a.href = URL.createObjectURL(blob);
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  }
+
+  const getDuration = () => Math.min(15, Math.max(1, parseInt($('videoSec').value, 10) || 4));
+
+  function setBusy(id, label) {
+    const btn = $(id);
+    btn.disabled = true;
+    btn.dataset.orig = btn.textContent;
+    btn.textContent = label;
+    return () => { btn.disabled = false; btn.textContent = btn.dataset.orig; };
+  }
+
+  /* ---------- image export (PNG / WebP) ---------- */
+  function exportImage(type, ext) {
+    const c = renderFrame(document.createElement('canvas'), artW, artH, time);
+    c.toBlob(blob => {
+      if (!blob || blob.type !== type) { toast(ext.toUpperCase() + ' 저장을 지원하지 않는 브라우저예요'); return; }
+      downloadBlob(blob, `gradient-${artW}x${artH}.${ext}`);
+      toast(`${ext.toUpperCase()} 다운로드 시작 (${artW}×${artH})`);
+    }, type, 0.95);
+  }
+  $('downloadPng').addEventListener('click', () => exportImage('image/png', 'png'));
+  $('downloadWebp').addEventListener('click', () => exportImage('image/webp', 'webp'));
+
+  /* ---------- SVG export (hatch mode) ---------- */
+  $('downloadSvg').addEventListener('click', () => {
+    ensureHatch();
+    if (!hatchGeom) { toast('먼저 사진을 업로드하거나 색상을 지정해주세요'); return; }
+    const blob = new Blob([buildSvg(hatchGeom)], { type: 'image/svg+xml' });
+    downloadBlob(blob, `hatching-${artW}x${artH}.svg`);
+    toast(`SVG 다운로드 시작 (${artW}×${artH}, 선 ${hatchGeom.strokes.length}개)`);
+  });
+
+  /* ---------- GIF export ---------- */
+  $('downloadGif').addEventListener('click', async () => {
+    if (typeof GIF === 'undefined') { toast('GIF 라이브러리를 못 불러왔어요. 인터넷 연결을 확인해주세요'); return; }
+    const done = setBusy('downloadGif', 'GIF 생성 중…');
+    try {
+      const workerSrc = await fetch('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js').then(r => r.text());
+      const workerUrl = URL.createObjectURL(new Blob([workerSrc], { type: 'application/javascript' }));
+      // cap GIF resolution to keep file size reasonable
+      const scale = Math.min(1, 720 / Math.max(artW, artH));
+      const W = Math.max(2, Math.round(artW * scale)), H = Math.max(2, Math.round(artH * scale));
+      const fps = 15, dur = getDuration(), frames = fps * dur;
+      const gif = new GIF({ workers: 2, quality: 10, width: W, height: H, workerScript: workerUrl });
+      const c = document.createElement('canvas');
+      for (let f = 0; f < frames; f++) {
+        renderFrame(c, W, H, time + (f / fps) * speed * TIME_SCALE);
+        gif.addFrame(c, { copy: true, delay: Math.round(1000 / fps) });
+      }
+      gif.on('finished', blob => {
+        downloadBlob(blob, `gradient-${W}x${H}-${dur}s.gif`);
+        toast(`GIF 다운로드 시작 (${W}×${H}, ${dur}초)`);
+        done();
+      });
+      gif.render();
+    } catch (err) {
+      console.error(err);
+      toast('GIF 생성에 실패했어요');
+      done();
+    }
+  });
+
+  /* ---------- MP4 / WebM export ---------- */
+  $('downloadMp4').addEventListener('click', () => {
+    if (!('MediaRecorder' in window)) { toast('이 브라우저는 영상 녹화를 지원하지 않아요'); return; }
+    let mime = 'video/mp4', ext = 'mp4';
+    if (!MediaRecorder.isTypeSupported(mime)) {
+      mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+      ext = 'webm';
+    }
+    const dur = getDuration();
+    const done = setBusy('downloadMp4', `녹화 중… (${dur}초)`);
+    const c = document.createElement('canvas');
+    renderFrame(c, artW, artH, time);
+    const stream = c.captureStream(30);
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+    const chunks = [];
+    rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+    rec.onstop = () => {
+      downloadBlob(new Blob(chunks, { type: mime }), `gradient-${artW}x${artH}-${dur}s.${ext}`);
+      toast(`${ext.toUpperCase()} 다운로드 시작 (${artW}×${artH}, ${dur}초)` + (ext === 'webm' ? ' — MP4 미지원 브라우저라 WebM으로 저장했어요' : ''));
+      done();
+    };
+    const t0 = performance.now(), startTime = time;
+    rec.start();
+    (function tick() {
+      const el = (performance.now() - t0) / 1000;
+      renderFrame(c, artW, artH, startTime + el * speed * TIME_SCALE);
+      if (el < dur) requestAnimationFrame(tick);
+      else rec.stop();
+    })();
+  });
+
+  /* ---------- toast ---------- */
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+})();
+</script>
+</body>
+</html>
