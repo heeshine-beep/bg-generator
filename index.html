@@ -723,10 +723,10 @@
     </div>
     <div class="toolbar export-bar">
       <span id="sizeBadge">720 × 320</span>
-      <label class="tb-toggle" id="handleToggleWrap" title="캔버스 위 색상 포인트(1, 2, 3…) 표시">
+      <span class="tb-toggle" id="handleToggleWrap" title="캔버스 위 색상 포인트(1, 2, 3…) 표시">
         <span class="toggle"><input type="checkbox" id="handleToggle" checked><span class="track" onclick="document.getElementById('handleToggle').click()"></span></span>
-        <span>포인트</span>
-      </label>
+        <span style="cursor:pointer" onclick="document.getElementById('handleToggle').click()">포인트</span>
+      </span>
       <span class="tb-sep"></span>
       <button class="action primary" id="downloadPng" disabled>PNG</button>
       <button class="action primary" id="downloadWebp" disabled>WebP</button>
